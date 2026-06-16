@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ativação de Motos</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <section id="loginScreen" class="login-shell">
+        <div class="login-card">
+            <p class="eyebrow">Acesso protegido</p>
+            <h1>Ativação Oficina</h1>
+            <p class="hero-copy">Entre com um dos logins principais para acessar apenas o que seu perfil pode usar.</p>
+            <form id="loginForm" class="login-form">
+                <label>
+                    Usuário
+                    <input type="text" id="loginUsername" placeholder="admin, vendedor ou oficina" required>
+                </label>
+                <label>
+                    Senha
+                    <input type="password" id="loginPassword" placeholder="Digite a senha" required>
+                </label>
+                <button type="submit" class="primary-button">Entrar</button>
+            </form>
+            <div class="helper-list">
+                
+                
+            </div>
+        </div>
+    </section>
+
+    <div id="appShell" class="page-shell is-hidden">
+        <header class="hero">
+            <div>
+                <p class="eyebrow">Oficina e vendas no mesmo sistema</p>
+                <h1>Controle local de ativações de motos</h1>
+                <p class="hero-copy" id="heroSubtitle">
+                    Login por perfil, responsáveis separados e histórico completo de alterações.
+                </p>
+            </div>
+            <details class="session-badge" id="sessionBadge">
+                <summary class="session-badge-toggle" aria-label="Sessão atual">
+                    <span class="session-badge-dot" aria-hidden="true"></span>
+                    <span id="sessionAvatar" class="session-avatar">-</span>
+                </summary>
+                <div class="session-menu">
+                    <p class="session-menu-label">Sessão atual</p>
+                    <strong id="sessionUserLabel">-</strong>
+                    <small id="sessionProfileLabel">-</small>
+                    <button id="logoutButton" type="button" class="ghost-button">Sair</button>
+                </div>
+            </details>
+        </header>
+
+        <nav id="mainNav" class="view-switcher" aria-label="Menu principal"></nav>
+
+        <main>
+            <section id="dashboardSection" class="view-panel">
+                <div class="section-header">
+                    <div>
+                        <h2>Dashboard</h2>
+                        <p>Painel geral do dia com fila por status, atrasos e horários próximos.</p>
+                    </div>
+                    <form id="dashboardFilters" class="inline-form">
+                        <label>
+                            Data
+                            <input type="date" id="dashboardDate">
+                        </label>
+                        <button type="submit" class="secondary-button">Atualizar</button>
+                    </form>
+                </div>
+                <div id="dashboardCounters" class="counter-grid"></div>
+                <div class="dashboard-alerts">
+                    <div class="alert-card">
+                        <h3>Atrasadas</h3>
+                        <div id="delayedList" class="chip-list empty-state-small">Nenhuma ativação atrasada.</div>
+                    </div>
+                    <div class="alert-card">
+                        <h3>Próximas 1h</h3>
+                        <div id="upcomingList" class="chip-list empty-state-small">Nenhuma ativação próxima.</div>
+                    </div>
+                </div>
+                <div id="dashboardBoard" class="board-grid"></div>
+            </section>
+
+            <section id="sellerSection" class="view-panel">
+                <div class="section-header">
+                    <div>
+                        <h2>Tela do vendedor</h2>
+                        <p>Cadastro, edição, cancelamento e consulta das ativações comerciais.</p>
+                    </div>
+                </div>
+
+                <div class="seller-layout">
+                    <section class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3 id="sellerFormTitle">Nova ativação</h3>
+                                <p>O vendedor responsável pode ser selecionado da lista ou digitado na hora.</p>
+                            </div>
+                            <button id="resetSellerFormButton" class="ghost-button" type="button">Limpar</button>
+                        </div>
+
+                        <form id="activationForm" class="form-grid">
+                            <input type="hidden" id="activationId">
+                            <label>
+                                Modelo da moto
+                                <input type="text" id="motorcycleModel" required maxlength="120">
+                            </label>
+                            <label>
+                                Chassi
+                                <input type="text" id="chassis" required maxlength="80">
+                            </label>
+                            <label>
+                                Data de pedido
+                                <input type="date" id="orderDate">
+                            </label>
+                            <label>
+                                Vendedor responsável
+                                <input type="text" id="sellerResponsibleInput" list="sellerResponsibleOptions" placeholder="Digite ou selecione um vendedor" required>
+                            </label>
+                            <datalist id="sellerResponsibleOptions"></datalist>
+                            <label>
+                                Data de ativação
+                                <input type="date" id="activationDate" required>
+                            </label>
+                            <label>
+                                Horário
+                                <input type="time" id="activationTime" required>
+                            </label>
+                            <label>
+                                Cliente
+                                <input type="text" id="clientName" required maxlength="160">
+                            </label>
+                            <label>
+                                CPF do cliente
+                                <input type="text" id="clientCpf" required maxlength="20">
+                            </label>
+                            <label class="full-width">
+                                Observações do vendedor
+                                <textarea id="notes" rows="3" maxlength="1000"></textarea>
+                            </label>
+                            <label class="full-width admin-only" data-role-visibility="ADMIN">
+                                Status do registro
+                                <select id="status">
+                                    <option value="Pendente">Pendente</option>
+                                    <option value="Em andamento">Em andamento</option>
+                                    <option value="Finalizado">Finalizado</option>
+                                    <option value="Cancelado">Cancelado</option>
+                                </select>
+                            </label>
+                            <div class="form-actions full-width">
+                                <button type="submit" class="primary-button">Salvar ativação</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section class="card admin-only" data-role-visibility="ADMIN">
+                        <div class="card-header">
+                            <div>
+                                <h3>Importar planilha antiga</h3>
+                                <p>Disponível apenas para ADMIN.</p>
+                            </div>
+                        </div>
+                        <form id="importForm" class="import-form">
+                            <input type="file" id="importFile" accept=".xlsx" required>
+                            <button type="submit" class="secondary-button">Importar Excel</button>
+                        </form>
+                        <p id="importResult" class="helper-text"></p>
+                    </section>
+                </div>
+
+                <section class="card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Ativações cadastradas</h3>
+                            <p>Filtros por período, cliente, chassi, vendedor, mecânico e status.</p>
+                        </div>
+                    </div>
+
+                    <form id="sellerFilters" class="filter-grid filter-grid-wide">
+                        <label>
+                            Data inicial
+                            <input type="date" id="filterStartDate">
+                        </label>
+                        <label>
+                            Data final
+                            <input type="date" id="filterEndDate">
+                        </label>
+                        <label>
+                            Cliente
+                            <input type="text" id="filterClient">
+                        </label>
+                        <label>
+                            Chassi
+                            <input type="text" id="filterChassis">
+                        </label>
+                        <label>
+                            Vendedor responsável
+                            <input type="text" id="filterSeller">
+                        </label>
+                        <label>
+                            Mecânico responsável
+                            <input type="text" id="filterMechanic">
+                        </label>
+                        <label>
+                            Status
+                            <select id="filterStatus">
+                                <option value="">Todos</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Em andamento">Em andamento</option>
+                                <option value="Finalizado">Finalizado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                        </label>
+                        <div class="filter-actions">
+                            <button type="submit" class="secondary-button">Filtrar</button>
+                            <button type="button" id="clearFiltersButton" class="ghost-button">Limpar</button>
+                        </div>
+                    </form>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Data</th>
+                                    <th>Horário</th>
+                                    <th>Modelo</th>
+                                    <th>Chassi</th>
+                                    <th>Vendedor</th>
+                                    <th>Mecânico</th>
+                                    <th>Status</th>
+                                    <th>Última alteração</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sellerTableBody">
+                                <tr>
+                                    <td colspan="10" class="empty-row">Carregando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <section id="officeSection" class="view-panel">
+                <div class="section-header">
+                    <div>
+                        <h2>Tela da oficina</h2>
+                        <p>A oficina só acessa a fila operacional e os controles de início/finalização.</p>
+                    </div>
+                    <div class="mechanic-tools">
+                        <label>
+                            Mecânico responsável
+                            <input type="text" id="mechanicResponsibleInput" list="mechanicResponsibleOptions" placeholder="Digite ou selecione um mecânico">
+                        </label>
+                        <datalist id="mechanicResponsibleOptions"></datalist>
+                        <label>
+                            Data
+                            <input type="date" id="mechanicDate">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="auto-refresh-note">
+                    Atualização automática da fila a cada poucos segundos.
+                </div>
+
+                <div id="mechanicList" class="mechanic-grid"></div>
+            </section>
+
+            <section id="usersSection" class="view-panel admin-only" data-role-visibility="ADMIN">
+                <div class="section-header">
+                    <div>
+                        <h2>Usuários de login</h2>
+                        <p>Gerencie acessos administrativos sem criar logins individuais para vendedores e mecânicos.</p>
+                    </div>
+                </div>
+
+                <div class="two-column-grid">
+                    <section class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Novo usuário</h3>
+                                <p>Perfis permitidos: ADMIN, VENDEDOR e OFICINA.</p>
+                            </div>
+                        </div>
+                        <form id="userForm" class="form-grid">
+                            <label>
+                                Nome
+                                <input type="text" id="userName" required>
+                            </label>
+                            <label>
+                                Usuário
+                                <input type="text" id="userUsername" required>
+                            </label>
+                            <label>
+                                Senha
+                                <input type="password" id="userPassword" required>
+                            </label>
+                            <label>
+                                Perfil
+                                <select id="userProfile">
+                                    <option value="ADMIN">ADMIN</option>
+                                    <option value="VENDEDOR">VENDEDOR</option>
+                                    <option value="OFICINA">OFICINA</option>
+                                </select>
+                            </label>
+                            <label>
+                                Ativo
+                                <select id="userActive">
+                                    <option value="true">Sim</option>
+                                    <option value="false">Não</option>
+                                </select>
+                            </label>
+                            <label>
+                                Exigir troca de senha
+                                <select id="userMustChangePassword">
+                                    <option value="false">Não</option>
+                                    <option value="true">Sim</option>
+                                </select>
+                            </label>
+                            <div class="form-actions full-width">
+                                <button type="submit" class="primary-button">Criar usuário</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Usuários cadastrados</h3>
+                                <p>É possível editar perfil, ativação e senha.</p>
+                            </div>
+                        </div>
+                        <div class="table-wrapper">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Usuário</th>
+                                        <th>Perfil</th>
+                                        <th>Ativo</th>
+                                        <th>Último login</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <tr>
+                                        <td colspan="5" class="empty-row">Carregando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <section id="peopleSection" class="view-panel admin-only" data-role-visibility="ADMIN">
+                <div class="section-header">
+                    <div>
+                        <h2>Responsáveis</h2>
+                        <p>Renomeie ou desative vendedores e mecânicos sem criar logins separados.</p>
+                    </div>
+                </div>
+
+                <section class="card">
+                    <form id="peopleFilters" class="filter-grid">
+                        <label>
+                            Tipo
+                            <select id="peopleTypeFilter">
+                                <option value="">Todos</option>
+                                <option value="VENDEDOR">Vendedor</option>
+                                <option value="MECANICO">Mecânico</option>
+                            </select>
+                        </label>
+                        <label>
+                            Buscar nome
+                            <input type="text" id="peopleSearch">
+                        </label>
+                        <label>
+                            Mostrar inativos
+                            <select id="peopleIncludeInactive">
+                                <option value="false">Não</option>
+                                <option value="true">Sim</option>
+                            </select>
+                        </label>
+                        <div class="filter-actions">
+                            <button type="submit" class="secondary-button">Atualizar</button>
+                        </div>
+                    </form>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Tipo</th>
+                                    <th>Ativo</th>
+                                    <th>Criado em</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="peopleTableBody">
+                                <tr>
+                                    <td colspan="5" class="empty-row">Carregando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <section id="historySection" class="view-panel admin-only" data-role-visibility="ADMIN">
+                <div class="section-header">
+                    <div>
+                        <h2>Histórico de alterações</h2>
+                        <p>Rastreia login, responsável, status e valores antigo/novo das operações importantes.</p>
+                    </div>
+                </div>
+
+                <section class="card">
+                    <form id="historyFilters" class="filter-grid filter-grid-wide">
+                        <label>
+                            Data inicial
+                            <input type="date" id="historyStartDate">
+                        </label>
+                        <label>
+                            Data final
+                            <input type="date" id="historyEndDate">
+                        </label>
+                        <label>
+                            Status
+                            <select id="historyStatus">
+                                <option value="">Todos</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Em andamento">Em andamento</option>
+                                <option value="Finalizado">Finalizado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                        </label>
+                        <label>
+                            Vendedor
+                            <input type="text" id="historySellerName" list="sellerResponsibleOptions">
+                        </label>
+                        <label>
+                            Mecânico
+                            <input type="text" id="historyMechanicName" list="mechanicResponsibleOptions">
+                        </label>
+                        <div class="filter-actions">
+                            <button type="submit" class="secondary-button">Filtrar</button>
+                        </div>
+                    </form>
+                    <p id="historyContext" class="helper-text"></p>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data/Hora</th>
+                                    <th>Ação</th>
+                                    <th>Login</th>
+                                    <th>Vendedor</th>
+                                    <th>Mecânico</th>
+                                    <th>Status</th>
+                                    <th>Detalhes</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <tr>
+                                    <td colspan="7" class="empty-row">Carregando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </section>
+
+            <section id="toolsSection" class="view-panel admin-only" data-role-visibility="ADMIN">
+                <div class="section-header">
+                    <div>
+                        <h2>Ferramentas do administrador</h2>
+                        <p>Exportação, backup manual e configurações básicas do sistema.</p>
+                    </div>
+                </div>
+
+                <div class="two-column-grid">
+                    <section class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Exportar relatórios</h3>
+                                <p>Filtre por vendedor, mecânico, período, status, chassi e cliente.</p>
+                            </div>
+                        </div>
+                        <form id="exportForm" class="filter-grid filter-grid-wide">
+                            <label>
+                                Data inicial
+                                <input type="date" id="exportStartDate">
+                            </label>
+                            <label>
+                                Data final
+                                <input type="date" id="exportEndDate">
+                            </label>
+                            <label>
+                                Cliente
+                                <input type="text" id="exportClient">
+                            </label>
+                            <label>
+                                Chassi
+                                <input type="text" id="exportChassis">
+                            </label>
+                            <label>
+                                Vendedor
+                                <input type="text" id="exportSeller">
+                            </label>
+                            <label>
+                                Mecânico
+                                <input type="text" id="exportMechanic">
+                            </label>
+                            <label>
+                                Status
+                                <select id="exportStatus">
+                                    <option value="">Todos</option>
+                                    <option value="Pendente">Pendente</option>
+                                    <option value="Em andamento">Em andamento</option>
+                                    <option value="Finalizado">Finalizado</option>
+                                    <option value="Cancelado">Cancelado</option>
+                                </select>
+                            </label>
+                            <div class="filter-actions">
+                                <button type="submit" class="secondary-button">Exportar CSV</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Backup e configurações</h3>
+                                <p>Backup local manual e ajustes operacionais.</p>
+                            </div>
+                        </div>
+                        <button id="backupButton" type="button" class="secondary-button">Gerar backup manual</button>
+                        <p id="backupResult" class="helper-text"></p>
+                        <form id="settingsForm" class="form-grid spaced-top">
+                            <label class="full-width">
+                                URL pública
+                                <input type="text" id="settingsPublicUrl" required>
+                            </label>
+                            <label class="full-width">
+                                Nome da empresa
+                                <input type="text" id="settingsCompanyName" required>
+                            </label>
+                            <label>
+                                Autoatualização (segundos)
+                                <input type="number" id="settingsAutoRefresh" min="5" max="300" required>
+                            </label>
+                            <div class="form-actions full-width">
+                                <button type="submit" class="primary-button">Salvar configurações</button>
+                            </div>
+                        </form>
+                    </section>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js" defer></script>
+</body>
+</html>

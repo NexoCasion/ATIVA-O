@@ -1,0 +1,1076 @@
+const API_BASE = "/api";
+const STATUS_ORDER = ["Pendente", "Em andamento", "Finalizado", "Cancelado"];
+const DEFAULT_AUTO_REFRESH_SECONDS = 15;
+
+const NAV_ITEMS = {
+    ADMIN: [
+        { route: "/admin", label: "Dashboard" },
+        { route: "/vendedor", label: "Vendedor" },
+        { route: "/oficina", label: "Oficina" },
+        { route: "/admin/usuarios", label: "Usuários" },
+        { route: "/admin/responsaveis", label: "Responsáveis" },
+        { route: "/admin/historico", label: "Histórico" },
+        { route: "/admin/ferramentas", label: "Ferramentas" },
+    ],
+    VENDEDOR: [
+        { route: "/vendedor", label: "Ativações" },
+    ],
+    OFICINA: [
+        { route: "/oficina", label: "Oficina" },
+    ],
+};
+
+const SECTION_BY_ROUTE = {
+    "/admin": "dashboardSection",
+    "/vendedor": "sellerSection",
+    "/oficina": "officeSection",
+    "/admin/usuarios": "usersSection",
+    "/admin/responsaveis": "peopleSection",
+    "/admin/historico": "historySection",
+    "/admin/ferramentas": "toolsSection",
+};
+
+const elements = {
+    loginScreen: document.getElementById("loginScreen"),
+    appShell: document.getElementById("appShell"),
+    loginForm: document.getElementById("loginForm"),
+    loginUsername: document.getElementById("loginUsername"),
+    loginPassword: document.getElementById("loginPassword"),
+    sessionBadge: document.getElementById("sessionBadge"),
+    sessionAvatar: document.getElementById("sessionAvatar"),
+    logoutButton: document.getElementById("logoutButton"),
+    sessionUserLabel: document.getElementById("sessionUserLabel"),
+    sessionProfileLabel: document.getElementById("sessionProfileLabel"),
+    heroSubtitle: document.getElementById("heroSubtitle"),
+    mainNav: document.getElementById("mainNav"),
+    panels: document.querySelectorAll(".view-panel"),
+    roleVisibility: document.querySelectorAll("[data-role-visibility]"),
+    toast: document.getElementById("toast"),
+    dashboardDate: document.getElementById("dashboardDate"),
+    dashboardFilters: document.getElementById("dashboardFilters"),
+    dashboardCounters: document.getElementById("dashboardCounters"),
+    delayedList: document.getElementById("delayedList"),
+    upcomingList: document.getElementById("upcomingList"),
+    dashboardBoard: document.getElementById("dashboardBoard"),
+    activationForm: document.getElementById("activationForm"),
+    activationId: document.getElementById("activationId"),
+    sellerFormTitle: document.getElementById("sellerFormTitle"),
+    motorcycleModel: document.getElementById("motorcycleModel"),
+    chassis: document.getElementById("chassis"),
+    orderDate: document.getElementById("orderDate"),
+    sellerResponsibleInput: document.getElementById("sellerResponsibleInput"),
+    sellerResponsibleOptions: document.getElementById("sellerResponsibleOptions"),
+    activationDate: document.getElementById("activationDate"),
+    activationTime: document.getElementById("activationTime"),
+    clientName: document.getElementById("clientName"),
+    clientCpf: document.getElementById("clientCpf"),
+    notes: document.getElementById("notes"),
+    status: document.getElementById("status"),
+    resetSellerFormButton: document.getElementById("resetSellerFormButton"),
+    sellerFilters: document.getElementById("sellerFilters"),
+    filterStartDate: document.getElementById("filterStartDate"),
+    filterEndDate: document.getElementById("filterEndDate"),
+    filterClient: document.getElementById("filterClient"),
+    filterChassis: document.getElementById("filterChassis"),
+    filterSeller: document.getElementById("filterSeller"),
+    filterMechanic: document.getElementById("filterMechanic"),
+    filterStatus: document.getElementById("filterStatus"),
+    clearFiltersButton: document.getElementById("clearFiltersButton"),
+    sellerTableBody: document.getElementById("sellerTableBody"),
+    importForm: document.getElementById("importForm"),
+    importFile: document.getElementById("importFile"),
+    importResult: document.getElementById("importResult"),
+    mechanicResponsibleInput: document.getElementById("mechanicResponsibleInput"),
+    mechanicResponsibleOptions: document.getElementById("mechanicResponsibleOptions"),
+    mechanicDate: document.getElementById("mechanicDate"),
+    mechanicList: document.getElementById("mechanicList"),
+    userForm: document.getElementById("userForm"),
+    userName: document.getElementById("userName"),
+    userUsername: document.getElementById("userUsername"),
+    userPassword: document.getElementById("userPassword"),
+    userProfile: document.getElementById("userProfile"),
+    userActive: document.getElementById("userActive"),
+    userMustChangePassword: document.getElementById("userMustChangePassword"),
+    usersTableBody: document.getElementById("usersTableBody"),
+    peopleFilters: document.getElementById("peopleFilters"),
+    peopleTypeFilter: document.getElementById("peopleTypeFilter"),
+    peopleSearch: document.getElementById("peopleSearch"),
+    peopleIncludeInactive: document.getElementById("peopleIncludeInactive"),
+    peopleTableBody: document.getElementById("peopleTableBody"),
+    historyFilters: document.getElementById("historyFilters"),
+    historyStartDate: document.getElementById("historyStartDate"),
+    historyEndDate: document.getElementById("historyEndDate"),
+    historyStatus: document.getElementById("historyStatus"),
+    historySellerName: document.getElementById("historySellerName"),
+    historyMechanicName: document.getElementById("historyMechanicName"),
+    historyContext: document.getElementById("historyContext"),
+    historyTableBody: document.getElementById("historyTableBody"),
+    exportForm: document.getElementById("exportForm"),
+    exportStartDate: document.getElementById("exportStartDate"),
+    exportEndDate: document.getElementById("exportEndDate"),
+    exportClient: document.getElementById("exportClient"),
+    exportChassis: document.getElementById("exportChassis"),
+    exportSeller: document.getElementById("exportSeller"),
+    exportMechanic: document.getElementById("exportMechanic"),
+    exportStatus: document.getElementById("exportStatus"),
+    backupButton: document.getElementById("backupButton"),
+    backupResult: document.getElementById("backupResult"),
+    settingsForm: document.getElementById("settingsForm"),
+    settingsPublicUrl: document.getElementById("settingsPublicUrl"),
+    settingsCompanyName: document.getElementById("settingsCompanyName"),
+    settingsAutoRefresh: document.getElementById("settingsAutoRefresh"),
+};
+
+const state = {
+    token: window.localStorage.getItem("authToken") || "",
+    user: null,
+    currentRoute: "",
+    sellerRows: [],
+    mechanicRows: [],
+    users: [],
+    sellerPeople: [],
+    mechanicPeople: [],
+    adminPeople: [],
+    historyRows: [],
+    focusedActivationHistoryId: null,
+    settings: null,
+    autoRefreshId: null,
+};
+
+function todayString() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function formatDate(value) {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat("pt-BR").format(new Date(`${value}T00:00:00`));
+}
+
+function formatDateTime(value) {
+    if (!value) return "-";
+    return new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "short",
+    }).format(new Date(value));
+}
+
+function formatTime(value) {
+    return value ? value.slice(0, 5) : "-";
+}
+
+function statusClassName(value) {
+    return `status-${String(value).toLowerCase().replace(/\s+/g, "-")}`;
+}
+
+function showToast(message, isError = false) {
+    elements.toast.textContent = message;
+    elements.toast.style.background = isError ? "rgba(153, 27, 27, 0.95)" : "rgba(46, 36, 29, 0.94)";
+    elements.toast.classList.add("is-visible");
+    window.clearTimeout(showToast.timerId);
+    showToast.timerId = window.setTimeout(() => elements.toast.classList.remove("is-visible"), 2600);
+}
+
+function getDefaultRoute(profile) {
+    return profile === "ADMIN" ? "/admin" : profile === "OFICINA" ? "/oficina" : "/vendedor";
+}
+
+function allowedRoutes() {
+    return (NAV_ITEMS[state.user?.profile] || []).map((item) => item.route);
+}
+
+function routeIsAllowed(route) {
+    return allowedRoutes().includes(route);
+}
+
+function normalizePath(pathname) {
+    if (!pathname || pathname === "/") return state.user ? getDefaultRoute(state.user.profile) : "/";
+    return pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
+}
+
+async function apiFetch(path, options = {}) {
+    const headers = {
+        ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+        ...(options.headers || {}),
+    };
+    if (state.token) {
+        headers.Authorization = `Bearer ${state.token}`;
+    }
+
+    const response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers,
+    });
+
+    if (response.status === 204) {
+        return null;
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    let payload;
+    if (options.parseAs === "blob") {
+        payload = await response.blob();
+    } else if (contentType.includes("application/json")) {
+        payload = await response.json();
+    } else {
+        payload = await response.text();
+    }
+
+    if (!response.ok) {
+        if (response.status === 401) {
+            handleUnauthorized();
+        }
+        const message = typeof payload === "string" ? payload : payload.detail || "Erro inesperado na API.";
+        throw new Error(message);
+    }
+
+    return payload;
+}
+
+function handleUnauthorized() {
+    state.token = "";
+    state.user = null;
+    window.localStorage.removeItem("authToken");
+    elements.sessionBadge?.removeAttribute("open");
+    elements.appShell.classList.add("is-hidden");
+    elements.loginScreen.classList.remove("is-hidden");
+    window.history.replaceState({}, "", "/");
+}
+
+function saveSession(token, user) {
+    state.token = token;
+    state.user = user;
+    window.localStorage.setItem("authToken", token);
+}
+
+function renderSession() {
+    const sessionInitial = (state.user.name || state.user.username || state.user.profile).trim().charAt(0).toUpperCase();
+    elements.sessionAvatar.textContent = sessionInitial;
+    elements.sessionUserLabel.textContent = state.user.name;
+    elements.sessionProfileLabel.textContent = `${state.user.username} • ${state.user.profile}${state.user.must_change_password ? " • Troque a senha padrão" : ""}`;
+    elements.sessionBadge?.setAttribute("title", `${state.user.name} (${state.user.username})`);
+    elements.loginScreen.classList.add("is-hidden");
+    elements.appShell.classList.remove("is-hidden");
+    elements.heroSubtitle.textContent = state.user.profile === "ADMIN"
+        ? "Acesso total para administrar usuários, responsáveis, histórico e relatórios."
+        : state.user.profile === "OFICINA"
+            ? "Fila operacional da oficina com mecânico responsável e atualização em tempo real."
+            : "Cadastro comercial com vendedor responsável salvo automaticamente.";
+}
+
+function renderRoleVisibility() {
+    elements.roleVisibility.forEach((node) => {
+        const allowed = (node.dataset.roleVisibility || "").split(",").map((value) => value.trim());
+        node.classList.toggle("is-hidden", !allowed.includes(state.user.profile));
+    });
+}
+
+function renderNav() {
+    const items = NAV_ITEMS[state.user.profile] || [];
+    elements.mainNav.innerHTML = items.map((item) => `
+        <button class="view-button ${state.currentRoute === item.route ? "is-active" : ""}" data-route="${item.route}" type="button">
+            ${item.label}
+        </button>
+    `).join("");
+}
+
+function renderSections() {
+    elements.panels.forEach((panel) => {
+        panel.classList.toggle("is-active", panel.id === SECTION_BY_ROUTE[state.currentRoute]);
+    });
+}
+
+function populateDatalist(listElement, rows) {
+    listElement.innerHTML = rows.map((row) => `<option value="${row.name}"></option>`).join("");
+}
+
+function findPersonByName(name, type) {
+    const list = type === "VENDEDOR" ? state.sellerPeople : state.mechanicPeople;
+    return list.find((item) => item.name.toLowerCase() === String(name || "").trim().toLowerCase()) || null;
+}
+
+async function loadResponsibleLists() {
+    const [sellerPeople, mechanicPeople] = await Promise.all([
+        apiFetch("/people?type=VENDEDOR"),
+        apiFetch("/people?type=MECANICO"),
+    ]);
+    state.sellerPeople = sellerPeople;
+    state.mechanicPeople = mechanicPeople;
+    populateDatalist(elements.sellerResponsibleOptions, sellerPeople);
+    populateDatalist(elements.mechanicResponsibleOptions, mechanicPeople);
+}
+
+function resetSellerForm() {
+    elements.activationForm.reset();
+    elements.activationId.value = "";
+    elements.sellerFormTitle.textContent = "Nova ativação";
+    elements.activationDate.value = todayString();
+    elements.status.value = "Pendente";
+}
+
+function sellerPayloadFromForm() {
+    const editingRow = state.sellerRows.find((row) => row.id === Number(elements.activationId.value));
+    return {
+        motorcycle_model: elements.motorcycleModel.value.trim(),
+        chassis: elements.chassis.value.trim(),
+        order_date: elements.orderDate.value || null,
+        seller_responsible_name: elements.sellerResponsibleInput.value.trim(),
+        activation_date: elements.activationDate.value,
+        activation_time: elements.activationTime.value,
+        client_name: elements.clientName.value.trim(),
+        client_cpf: elements.clientCpf.value.trim(),
+        notes: elements.notes.value.trim(),
+        mechanic_notes: editingRow?.mechanic_notes || "",
+        status: state.user.profile === "ADMIN" ? elements.status.value : (editingRow?.status || "Pendente"),
+    };
+}
+
+function fillSellerForm(row) {
+    elements.activationId.value = row.id;
+    elements.sellerFormTitle.textContent = `Editando ativação #${row.id}`;
+    elements.motorcycleModel.value = row.motorcycle_model;
+    elements.chassis.value = row.chassis;
+    elements.orderDate.value = row.order_date || "";
+    elements.sellerResponsibleInput.value = row.seller_responsible_name || "";
+    elements.activationDate.value = row.activation_date;
+    elements.activationTime.value = formatTime(row.activation_time);
+    elements.clientName.value = row.client_name;
+    elements.clientCpf.value = row.client_cpf;
+    elements.notes.value = row.notes || "";
+    elements.status.value = row.status;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function sellerQueryString() {
+    const query = new URLSearchParams();
+    if (elements.filterStartDate.value) query.set("start_date", elements.filterStartDate.value);
+    if (elements.filterEndDate.value) query.set("end_date", elements.filterEndDate.value);
+    if (elements.filterClient.value.trim()) query.set("client", elements.filterClient.value.trim());
+    if (elements.filterChassis.value.trim()) query.set("chassis", elements.filterChassis.value.trim());
+    if (elements.filterSeller.value.trim()) query.set("seller", elements.filterSeller.value.trim());
+    if (elements.filterMechanic.value.trim()) query.set("mechanic", elements.filterMechanic.value.trim());
+    if (elements.filterStatus.value) query.set("status", elements.filterStatus.value);
+    return query.toString();
+}
+
+function renderSellerTable(rows) {
+    state.sellerRows = rows;
+    if (!rows.length) {
+        elements.sellerTableBody.innerHTML = '<tr><td colspan="10" class="empty-row">Nenhuma ativação encontrada.</td></tr>';
+        return;
+    }
+
+    elements.sellerTableBody.innerHTML = rows.map((row) => `
+        <tr>
+            <td>${row.id}</td>
+            <td>${formatDate(row.activation_date)}</td>
+            <td>${formatTime(row.activation_time)}</td>
+            <td>${row.motorcycle_model}</td>
+            <td>${row.chassis}</td>
+            <td>${row.seller_responsible_name}</td>
+            <td>${row.mechanic_responsible_name || "-"}</td>
+            <td><span class="status-pill ${statusClassName(row.status)}">${row.status}</span></td>
+            <td>${formatDateTime(row.updated_at)}<br><small>${row.last_changed_by}</small></td>
+            <td>
+                <div class="row-actions">
+                    <button type="button" data-action="edit" data-id="${row.id}" ${state.user.profile === "OFICINA" ? "disabled" : ""}>Editar</button>
+                    <button type="button" data-action="cancel" data-id="${row.id}" ${state.user.profile === "OFICINA" ? "disabled" : ""}>Cancelar</button>
+                    ${state.user.profile === "ADMIN" ? `<button type="button" data-action="history" data-id="${row.id}">Histórico</button><button type="button" data-action="delete" data-id="${row.id}">Excluir</button>` : ""}
+                </div>
+            </td>
+        </tr>
+    `).join("");
+}
+
+async function loadSellerTable() {
+    const query = sellerQueryString();
+    const rows = await apiFetch(`/activations${query ? `?${query}` : ""}`);
+    renderSellerTable(rows);
+}
+
+function renderCounters(counts) {
+    elements.dashboardCounters.innerHTML = STATUS_ORDER.map((status) => `
+        <article class="counter-card">
+            <p>${status}</p>
+            <strong>${counts[status] ?? 0}</strong>
+        </article>
+    `).join("");
+}
+
+function renderChipList(container, rows, emptyText) {
+    if (!rows.length) {
+        container.textContent = emptyText;
+        return;
+    }
+    container.innerHTML = rows.map((row) => `
+        <span class="chip"><strong>#${row.id}</strong> ${row.motorcycle_model} - ${formatTime(row.activation_time)}</span>
+    `).join("");
+}
+
+function renderDashboardBoard(rows, delayedIds, upcomingIds) {
+    elements.dashboardBoard.innerHTML = STATUS_ORDER.map((status) => {
+        const filtered = rows.filter((row) => row.status === status);
+        return `
+            <section class="board-column">
+                <h3>${status}</h3>
+                <div class="board-column-content">
+                    ${filtered.length ? filtered.map((row) => `
+                        <article class="activation-card ${delayedIds.has(row.id) ? "is-delayed" : ""} ${upcomingIds.has(row.id) ? "is-upcoming" : ""}">
+                            <strong>${row.motorcycle_model}</strong>
+                            <div class="activation-meta">
+                                <span>#${row.id} | ${row.chassis}</span>
+                                <span>${formatTime(row.activation_time)} | ${row.seller_responsible_name}</span>
+                                <span>${row.client_name}</span>
+                            </div>
+                        </article>
+                    `).join("") : '<div class="empty-state">Nenhum registro neste status.</div>'}
+                </div>
+            </section>
+        `;
+    }).join("");
+}
+
+async function loadDashboard() {
+    const query = new URLSearchParams({ target_date: elements.dashboardDate.value });
+    const data = await apiFetch(`/dashboard?${query.toString()}`);
+    renderCounters(data.counts);
+    renderChipList(elements.delayedList, data.delayed, "Nenhuma ativação atrasada.");
+    renderChipList(elements.upcomingList, data.upcoming, "Nenhuma ativação próxima.");
+    renderDashboardBoard(
+        data.activations,
+        new Set(data.delayed.map((row) => row.id)),
+        new Set(data.upcoming.map((row) => row.id))
+    );
+}
+
+function renderMechanicList(rows) {
+    state.mechanicRows = rows;
+    if (!rows.length) {
+        elements.mechanicList.innerHTML = '<div class="empty-state">Nenhuma ativação para a data selecionada.</div>';
+        return;
+    }
+
+    elements.mechanicList.innerHTML = rows.map((row) => `
+        <article class="mechanic-card">
+            <strong>${row.motorcycle_model}</strong>
+            <div class="mechanic-meta">
+                <span>#${row.id} | ${row.chassis}</span>
+                <span>${formatDate(row.activation_date)} às ${formatTime(row.activation_time)}</span>
+                <span>Cliente: ${row.client_name}</span>
+                <span>Vendedor responsável: ${row.seller_responsible_name}</span>
+                <span>Mecânico atual: ${row.mechanic_responsible_name || "-"}</span>
+                <span>Status: ${row.status}</span>
+            </div>
+            <textarea rows="3" data-notes-id="${row.id}" placeholder="Observações do mecânico">${row.mechanic_notes || ""}</textarea>
+            <div class="mechanic-card-actions">
+                <button type="button" data-status-action="Em andamento" data-id="${row.id}">Iniciar serviço</button>
+                <button type="button" data-status-action="Finalizado" data-id="${row.id}">Finalizar</button>
+            </div>
+        </article>
+    `).join("");
+}
+
+async function loadMechanicList() {
+    const query = new URLSearchParams({ activation_date: elements.mechanicDate.value });
+    const rows = await apiFetch(`/activations?${query.toString()}`);
+    renderMechanicList(rows);
+}
+
+function renderUsersTable(rows) {
+    state.users = rows;
+    if (!rows.length) {
+        elements.usersTableBody.innerHTML = '<tr><td colspan="5" class="empty-row">Nenhum usuário cadastrado.</td></tr>';
+        return;
+    }
+
+    elements.usersTableBody.innerHTML = rows.map((row) => `
+        <tr>
+            <td>${row.name}<br><small>${row.username}</small></td>
+            <td>${row.profile}</td>
+            <td>${row.active ? "Sim" : "Não"}</td>
+            <td>${formatDateTime(row.last_login)}</td>
+            <td>
+                <div class="row-actions">
+                    <button type="button" data-user-action="edit" data-id="${row.id}">Editar</button>
+                    <button type="button" data-user-action="toggle" data-id="${row.id}">${row.active ? "Desativar" : "Ativar"}</button>
+                    <button type="button" data-user-action="password" data-id="${row.id}">Senha</button>
+                </div>
+            </td>
+        </tr>
+    `).join("");
+}
+
+async function loadUsers() {
+    const rows = await apiFetch("/admin/users");
+    renderUsersTable(rows);
+}
+
+function renderPeopleTable(rows) {
+    state.adminPeople = rows;
+    if (!rows.length) {
+        elements.peopleTableBody.innerHTML = '<tr><td colspan="5" class="empty-row">Nenhum responsável encontrado.</td></tr>';
+        return;
+    }
+
+    elements.peopleTableBody.innerHTML = rows.map((row) => `
+        <tr>
+            <td>${row.name}</td>
+            <td>${row.type}</td>
+            <td>${row.active ? "Sim" : "Não"}</td>
+            <td>${formatDateTime(row.created_at)}</td>
+            <td>
+                <div class="row-actions">
+                    <button type="button" data-person-action="rename" data-id="${row.id}">Renomear</button>
+                    <button type="button" data-person-action="toggle" data-id="${row.id}">${row.active ? "Desativar" : "Ativar"}</button>
+                </div>
+            </td>
+        </tr>
+    `).join("");
+}
+
+async function loadAdminPeople() {
+    const query = new URLSearchParams();
+    if (elements.peopleTypeFilter.value) query.set("type", elements.peopleTypeFilter.value);
+    if (elements.peopleSearch.value.trim()) query.set("search", elements.peopleSearch.value.trim());
+    if (elements.peopleIncludeInactive.value === "true") query.set("include_inactive", "true");
+    const rows = await apiFetch(`/admin/people?${query.toString()}`);
+    renderPeopleTable(rows);
+}
+
+function summarizeHistoryRow(row) {
+    const changes = [];
+    if (row.old_value && row.new_value) {
+        Object.keys(row.new_value).slice(0, 4).forEach((key) => {
+            if (JSON.stringify(row.old_value[key]) !== JSON.stringify(row.new_value[key])) {
+                changes.push(`${key}: ${row.old_value[key] ?? "-"} -> ${row.new_value[key] ?? "-"}`);
+            }
+        });
+    }
+    return row.details || changes.join(" | ") || "-";
+}
+
+function renderHistoryTable(rows) {
+    state.historyRows = rows;
+    elements.historyTableBody.innerHTML = rows.length ? rows.map((row) => `
+        <tr>
+            <td>${formatDateTime(row.performed_at)}</td>
+            <td>${row.action}</td>
+            <td>${row.performed_by_login}</td>
+            <td>${row.seller_person_name || "-"}</td>
+            <td>${row.mechanic_person_name || "-"}</td>
+            <td>${row.motorcycle_status || "-"}</td>
+            <td>${summarizeHistoryRow(row)}</td>
+        </tr>
+    `).join("") : '<tr><td colspan="7" class="empty-row">Nenhum evento encontrado.</td></tr>';
+}
+
+async function loadHistory() {
+    if (state.focusedActivationHistoryId) {
+        const rows = await apiFetch(`/activations/${state.focusedActivationHistoryId}/history`);
+        elements.historyContext.textContent = `Exibindo histórico específico da ativação #${state.focusedActivationHistoryId}.`;
+        renderHistoryTable(rows);
+        return;
+    }
+
+    const query = new URLSearchParams();
+    if (elements.historyStartDate.value) query.set("start_date", elements.historyStartDate.value);
+    if (elements.historyEndDate.value) query.set("end_date", elements.historyEndDate.value);
+    if (elements.historyStatus.value) query.set("status", elements.historyStatus.value);
+    const sellerPerson = findPersonByName(elements.historySellerName.value, "VENDEDOR");
+    const mechanicPerson = findPersonByName(elements.historyMechanicName.value, "MECANICO");
+    if (sellerPerson) query.set("seller_person_id", sellerPerson.id);
+    if (mechanicPerson) query.set("mechanic_person_id", mechanicPerson.id);
+    const rows = await apiFetch(`/admin/history?${query.toString()}`);
+    elements.historyContext.textContent = "Exibindo histórico geral do sistema.";
+    renderHistoryTable(rows);
+}
+
+async function loadSettings() {
+    const settings = await apiFetch("/admin/settings");
+    state.settings = settings;
+    elements.settingsPublicUrl.value = settings.public_url;
+    elements.settingsCompanyName.value = settings.company_name;
+    elements.settingsAutoRefresh.value = settings.auto_refresh_seconds;
+}
+
+function updateAutoRefreshTimer() {
+    if (state.autoRefreshId) {
+        window.clearInterval(state.autoRefreshId);
+    }
+    const seconds = Number(state.settings?.auto_refresh_seconds || DEFAULT_AUTO_REFRESH_SECONDS);
+    state.autoRefreshId = window.setInterval(async () => {
+        if (!state.user) return;
+        try {
+            if (state.currentRoute === "/admin") {
+                await loadDashboard();
+            }
+            if (state.currentRoute === "/vendedor") {
+                await loadSellerTable();
+            }
+            if (state.currentRoute === "/oficina") {
+                await loadMechanicList();
+            }
+        } catch {
+            // Mantém a interface operacional mesmo em falhas temporárias.
+        }
+    }, seconds * 1000);
+}
+
+async function loadRouteData(route) {
+    if (route === "/admin") {
+        await loadDashboard();
+        return;
+    }
+    if (route === "/vendedor") {
+        await Promise.all([loadResponsibleLists(), loadSellerTable()]);
+        return;
+    }
+    if (route === "/oficina") {
+        await Promise.all([loadResponsibleLists(), loadMechanicList()]);
+        return;
+    }
+    if (route === "/admin/usuarios") {
+        await loadUsers();
+        return;
+    }
+    if (route === "/admin/responsaveis") {
+        await Promise.all([loadResponsibleLists(), loadAdminPeople()]);
+        return;
+    }
+    if (route === "/admin/historico") {
+        await Promise.all([loadResponsibleLists(), loadHistory()]);
+        return;
+    }
+    if (route === "/admin/ferramentas") {
+        await loadSettings();
+    }
+}
+
+async function navigateTo(route, { replace = false } = {}) {
+    const targetRoute = routeIsAllowed(route) ? route : getDefaultRoute(state.user.profile);
+    state.currentRoute = targetRoute;
+    renderNav();
+    renderSections();
+    if (replace) {
+        window.history.replaceState({}, "", targetRoute);
+    } else if (window.location.pathname !== targetRoute) {
+        window.history.pushState({}, "", targetRoute);
+    }
+    await loadRouteData(targetRoute);
+}
+
+async function submitLogin(event) {
+    event.preventDefault();
+    try {
+        const response = await apiFetch("/auth/login", {
+            method: "POST",
+            body: JSON.stringify({
+                username: elements.loginUsername.value.trim(),
+                password: elements.loginPassword.value,
+            }),
+        });
+        saveSession(response.token, response.user);
+        renderSession();
+        renderRoleVisibility();
+        resetSellerForm();
+        elements.dashboardDate.value = todayString();
+        elements.mechanicDate.value = todayString();
+        state.settings = { auto_refresh_seconds: DEFAULT_AUTO_REFRESH_SECONDS };
+        updateAutoRefreshTimer();
+        await navigateTo(response.redirect_path, { replace: true });
+        showToast("Login realizado com sucesso.");
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function submitSellerForm(event) {
+    event.preventDefault();
+    try {
+        const payload = sellerPayloadFromForm();
+        if (!payload.seller_responsible_name) {
+            throw new Error("Informe o vendedor responsável.");
+        }
+        if (elements.activationId.value) {
+            await apiFetch(`/activations/${elements.activationId.value}`, {
+                method: "PUT",
+                body: JSON.stringify(payload),
+            });
+            showToast("Ativação atualizada.");
+        } else {
+            await apiFetch("/activations", {
+                method: "POST",
+                body: JSON.stringify(payload),
+            });
+            showToast("Ativação criada.");
+        }
+        resetSellerForm();
+        await Promise.all([
+            loadResponsibleLists(),
+            loadSellerTable(),
+            state.user.profile === "ADMIN" ? loadDashboard() : Promise.resolve(),
+            loadMechanicList().catch(() => null),
+        ]);
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function handleSellerTableClick(event) {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+    const row = state.sellerRows.find((item) => item.id === Number(button.dataset.id));
+    if (!row) return;
+
+    try {
+        if (button.dataset.action === "edit") {
+            fillSellerForm(row);
+            return;
+        }
+        if (button.dataset.action === "cancel") {
+            if (!window.confirm(`Cancelar a ativação #${row.id}?`)) return;
+            await apiFetch(`/activations/${row.id}/cancel`, { method: "POST" });
+            showToast("Ativação cancelada.");
+        }
+        if (button.dataset.action === "delete") {
+            if (!window.confirm(`Excluir logicamente o registro #${row.id}?`)) return;
+            await apiFetch(`/activations/${row.id}`, { method: "DELETE" });
+            showToast("Registro removido logicamente.");
+        }
+        if (button.dataset.action === "history") {
+            state.focusedActivationHistoryId = row.id;
+            await navigateTo("/admin/historico");
+            return;
+        }
+        await Promise.all([
+            loadSellerTable(),
+            state.user.profile === "ADMIN" ? loadDashboard() : Promise.resolve(),
+            loadMechanicList().catch(() => null),
+        ]);
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function submitImportForm(event) {
+    event.preventDefault();
+    try {
+        const file = elements.importFile.files[0];
+        if (!file) {
+            throw new Error("Selecione um arquivo .xlsx para importar.");
+        }
+        const formData = new FormData();
+        formData.append("file", file);
+        const result = await apiFetch("/import/excel", {
+            method: "POST",
+            body: formData,
+        });
+        elements.importResult.textContent = `Importadas ${result.imported} linhas. Ignoradas ${result.ignored_blank_rows}. ${result.errors.length ? `Erros: ${result.errors.join(" | ")}` : ""}`;
+        await Promise.all([loadResponsibleLists(), loadSellerTable(), loadDashboard()]);
+        showToast("Importação concluída.");
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function handleMechanicAction(event) {
+    const button = event.target.closest("button[data-status-action]");
+    if (!button) return;
+    try {
+        const mechanicName = elements.mechanicResponsibleInput.value.trim();
+        if (!mechanicName) {
+            throw new Error("Informe o mecânico responsável antes de alterar o status.");
+        }
+        const id = Number(button.dataset.id);
+        const notesField = document.querySelector(`[data-notes-id="${id}"]`);
+        await apiFetch(`/activations/${id}/status`, {
+            method: "PATCH",
+            body: JSON.stringify({
+                status: button.dataset.statusAction,
+                mechanic_notes: notesField ? notesField.value.trim() : "",
+                mechanic_responsible_name: mechanicName,
+            }),
+        });
+        await Promise.all([
+            loadResponsibleLists(),
+            loadMechanicList(),
+            state.user.profile === "ADMIN" ? loadDashboard() : Promise.resolve(),
+            loadSellerTable().catch(() => null),
+        ]);
+        showToast("Status atualizado.");
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function submitUserForm(event) {
+    event.preventDefault();
+    try {
+        await apiFetch("/admin/users", {
+            method: "POST",
+            body: JSON.stringify({
+                name: elements.userName.value.trim(),
+                username: elements.userUsername.value.trim(),
+                password: elements.userPassword.value,
+                profile: elements.userProfile.value,
+                active: elements.userActive.value === "true",
+                must_change_password: elements.userMustChangePassword.value === "true",
+            }),
+        });
+        elements.userForm.reset();
+        await loadUsers();
+        showToast("Usuário criado.");
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function handleUsersTableClick(event) {
+    const button = event.target.closest("button[data-user-action]");
+    if (!button) return;
+    const user = state.users.find((item) => item.id === Number(button.dataset.id));
+    if (!user) return;
+
+    try {
+        if (button.dataset.userAction === "edit") {
+            const name = window.prompt("Novo nome:", user.name);
+            if (!name) return;
+            const username = window.prompt("Novo usuário:", user.username);
+            if (!username) return;
+            const profile = window.prompt("Perfil (ADMIN, VENDEDOR, OFICINA):", user.profile);
+            if (!profile) return;
+            await apiFetch(`/admin/users/${user.id}`, {
+                method: "PUT",
+                body: JSON.stringify({ name, username, profile: profile.toUpperCase() }),
+            });
+            showToast("Usuário atualizado.");
+        }
+        if (button.dataset.userAction === "toggle") {
+            await apiFetch(`/admin/users/${user.id}`, {
+                method: "PUT",
+                body: JSON.stringify({ active: !user.active }),
+            });
+            showToast("Situação do usuário atualizada.");
+        }
+        if (button.dataset.userAction === "password") {
+            const password = window.prompt(`Nova senha para ${user.username}:`);
+            if (!password) return;
+            await apiFetch(`/admin/users/${user.id}/password`, {
+                method: "PUT",
+                body: JSON.stringify({ password }),
+            });
+            showToast("Senha alterada.");
+        }
+        await loadUsers();
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function handlePeopleTableClick(event) {
+    const button = event.target.closest("button[data-person-action]");
+    if (!button) return;
+    const person = state.adminPeople.find((item) => item.id === Number(button.dataset.id));
+    if (!person) return;
+
+    try {
+        if (button.dataset.personAction === "rename") {
+            const newName = window.prompt("Novo nome do responsável:", person.name);
+            if (!newName) return;
+            await apiFetch(`/admin/people/${person.id}`, {
+                method: "PUT",
+                body: JSON.stringify({ name: newName }),
+            });
+            showToast("Responsável renomeado.");
+        }
+        if (button.dataset.personAction === "toggle") {
+            await apiFetch(`/admin/people/${person.id}`, {
+                method: "PUT",
+                body: JSON.stringify({ active: !person.active }),
+            });
+            showToast("Situação do responsável atualizada.");
+        }
+        await Promise.all([loadResponsibleLists(), loadAdminPeople()]);
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function submitExportForm(event) {
+    event.preventDefault();
+    try {
+        const query = new URLSearchParams();
+        if (elements.exportStartDate.value) query.set("start_date", elements.exportStartDate.value);
+        if (elements.exportEndDate.value) query.set("end_date", elements.exportEndDate.value);
+        if (elements.exportClient.value.trim()) query.set("client", elements.exportClient.value.trim());
+        if (elements.exportChassis.value.trim()) query.set("chassis", elements.exportChassis.value.trim());
+        if (elements.exportSeller.value.trim()) query.set("seller", elements.exportSeller.value.trim());
+        if (elements.exportMechanic.value.trim()) query.set("mechanic", elements.exportMechanic.value.trim());
+        if (elements.exportStatus.value) query.set("status", elements.exportStatus.value);
+        const fileContent = await apiFetch(`/export?${query.toString()}`, { parseAs: "text" });
+        const blob = new Blob([fileContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "relatorio-ativacoes.csv";
+        link.click();
+        URL.revokeObjectURL(link.href);
+        showToast("Relatório exportado.");
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function handleBackup() {
+    try {
+        const result = await apiFetch("/admin/backup", { method: "POST" });
+        elements.backupResult.textContent = `Backup criado em: ${result.backup_path}`;
+        showToast("Backup manual criado.");
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function submitSettingsForm(event) {
+    event.preventDefault();
+    try {
+        const settings = await apiFetch("/admin/settings", {
+            method: "PUT",
+            body: JSON.stringify({
+                public_url: elements.settingsPublicUrl.value.trim(),
+                company_name: elements.settingsCompanyName.value.trim(),
+                auto_refresh_seconds: Number(elements.settingsAutoRefresh.value),
+            }),
+        });
+        state.settings = settings;
+        updateAutoRefreshTimer();
+        showToast("Configurações salvas.");
+    } catch (error) {
+        showToast(error.message, true);
+    }
+}
+
+async function performLogout() {
+    try {
+        await apiFetch("/auth/logout", { method: "POST" });
+    } catch {
+        // Mesmo que a sessão já tenha expirado, limpamos o estado local.
+    }
+    handleUnauthorized();
+    showToast("Sessão encerrada.");
+}
+
+function bindEvents() {
+    elements.loginForm.addEventListener("submit", submitLogin);
+    elements.logoutButton.addEventListener("click", performLogout);
+    elements.mainNav.addEventListener("click", async (event) => {
+        const button = event.target.closest("button[data-route]");
+        if (!button) return;
+        state.focusedActivationHistoryId = button.dataset.route === "/admin/historico" ? state.focusedActivationHistoryId : null;
+        try {
+            await navigateTo(button.dataset.route);
+        } catch (error) {
+            showToast(error.message, true);
+        }
+    });
+    elements.dashboardFilters.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+            await loadDashboard();
+        } catch (error) {
+            showToast(error.message, true);
+        }
+    });
+    elements.activationForm.addEventListener("submit", submitSellerForm);
+    elements.resetSellerFormButton.addEventListener("click", resetSellerForm);
+    elements.sellerFilters.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+            await loadSellerTable();
+        } catch (error) {
+            showToast(error.message, true);
+        }
+    });
+    elements.clearFiltersButton.addEventListener("click", async () => {
+        elements.sellerFilters.reset();
+        try {
+            await loadSellerTable();
+        } catch (error) {
+            showToast(error.message, true);
+        }
+    });
+    elements.sellerTableBody.addEventListener("click", handleSellerTableClick);
+    elements.importForm?.addEventListener("submit", submitImportForm);
+    elements.mechanicDate.addEventListener("change", async () => {
+        try {
+            await loadMechanicList();
+        } catch (error) {
+            showToast(error.message, true);
+        }
+    });
+    elements.mechanicList.addEventListener("click", handleMechanicAction);
+    elements.userForm.addEventListener("submit", submitUserForm);
+    elements.usersTableBody.addEventListener("click", handleUsersTableClick);
+    elements.peopleFilters.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        try {
+            await loadAdminPeople();
+        } catch (error) {
+            showToast(error.message, true);
+        }
+    });
+    elements.peopleTableBody.addEventListener("click", handlePeopleTableClick);
+    elements.historyFilters.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        state.focusedActivationHistoryId = null;
+        try {
+            await loadHistory();
+        } catch (error) {
+            showToast(error.message, true);
+        }
+    });
+    elements.exportForm.addEventListener("submit", submitExportForm);
+    elements.backupButton.addEventListener("click", handleBackup);
+    elements.settingsForm.addEventListener("submit", submitSettingsForm);
+    window.addEventListener("popstate", async () => {
+        if (!state.user) return;
+        try {
+            await navigateTo(normalizePath(window.location.pathname), { replace: true });
+        } catch (error) {
+            showToast(error.message, true);
+        }
+    });
+}
+
+async function restoreSession() {
+    if (!state.token) {
+        return false;
+    }
+    try {
+        const user = await apiFetch("/auth/me");
+        state.user = user;
+        renderSession();
+        renderRoleVisibility();
+        elements.dashboardDate.value = todayString();
+        elements.mechanicDate.value = todayString();
+        state.settings = { auto_refresh_seconds: DEFAULT_AUTO_REFRESH_SECONDS };
+        updateAutoRefreshTimer();
+        await navigateTo(normalizePath(window.location.pathname), { replace: true });
+        return true;
+    } catch {
+        handleUnauthorized();
+        return false;
+    }
+}
+
+async function bootstrap() {
+    bindEvents();
+    resetSellerForm();
+    elements.dashboardDate.value = todayString();
+    elements.mechanicDate.value = todayString();
+    const restored = await restoreSession();
+    if (!restored) {
+        elements.loginScreen.classList.remove("is-hidden");
+        elements.appShell.classList.add("is-hidden");
+    }
+}
+
+bootstrap();
