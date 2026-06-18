@@ -604,6 +604,7 @@ function renderMechanicCard(row) {
                 <span class="mechanic-meta-chip"><b>Cliente</b> ${row.client_name}</span>
                 <span class="mechanic-meta-chip"><b>Vendedor</b> ${row.seller_responsible_name}</span>
                 <span class="mechanic-meta-chip"><b>Entrega</b> ${formatDate(row.activation_date)} às ${formatTime(row.activation_time)}</span>
+                <span class="mechanic-meta-chip"><b>Usuário do cadastro</b> ${row.created_by || "-"}</span>
                 <span class="mechanic-meta-chip"><b>Mecânico</b> ${row.mechanic_responsible_name || "-"}</span>
             </div>
             <label class="mechanic-notes-field">
