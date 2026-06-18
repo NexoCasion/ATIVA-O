@@ -3,19 +3,124 @@ from __future__ import annotations
 import csv
 import io
 import sqlite3
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from fastapi import HTTPException, status
 
 from ..auth import CurrentUser
 from ..database import db_cursor
-from ..schemas import ActivationCreate, ActivationResponse, ActivationUpdate, AuditLogResponse, DashboardResponse, StatusUpdate
+from ..schemas import (
+    ActivationCreate,
+    ActivationResponse,
+    ActivationUpdate,
+    AuditLogResponse,
+    DashboardResponse,
+    SchedulePreviewResponse,
+    StatusUpdate,
+)
 from ..security import iso_now
 from .audit_service import list_audit_logs, log_event
 from .people_service import ensure_person
 
 ALLOWED_STATUSES = ("Pendente", "Em andamento", "Finalizado", "Cancelado")
+DAILY_ACTIVATION_LIMIT = 8
+SAME_DAY_CUTOFF = time(10, 30)
+DEFAULT_ACTIVATION_TIME = time(17, 0)
+
+
+def is_business_day(target_date: date) -> bool:
+    return target_date.weekday() < 5
+
+
+def first_business_day_on_or_after(target_date: date) -> date:
+    current = target_date
+    while not is_business_day(current):
+        current += timedelta(days=1)
+    return current
+
+
+def next_business_day(target_date: date) -> date:
+    return first_business_day_on_or_after(target_date + timedelta(days=1))
+
+
+def count_scheduled_activations_for_day(
+    cursor: sqlite3.Cursor,
+    target_date: date,
+    *,
+    exclude_activation_id: int | None = None,
+) -> int:
+    query = """
+        SELECT COUNT(*) AS total
+        FROM activations
+        WHERE deleted_at IS NULL
+          AND status <> 'Cancelado'
+          AND activation_date = ?
+    """
+    params: list[Any] = [target_date.isoformat()]
+    if exclude_activation_id is not None:
+        query += " AND id <> ?"
+        params.append(exclude_activation_id)
+
+    row = cursor.execute(query, params).fetchone()
+    return int(row["total"]) if row is not None else 0
+
+
+def build_scheduling_message(
+    scheduled_date: date,
+    reasons: list[str],
+    *,
+    today: date,
+) -> str:
+    if scheduled_date == today:
+        base_message = f"Ativacao programada para hoje ({scheduled_date.strftime('%d/%m/%Y')}) as 17:00."
+    else:
+        base_message = f"Ativacao programada para {scheduled_date.strftime('%d/%m/%Y')} as 17:00."
+
+    if not reasons:
+        return base_message
+    return f"{base_message} Motivo: {'; '.join(reasons)}."
+
+
+def calculate_activation_schedule(
+    cursor: sqlite3.Cursor,
+    order_date: date | None,
+    *,
+    now: datetime | None = None,
+    exclude_activation_id: int | None = None,
+) -> SchedulePreviewResponse:
+    current_moment = now or datetime.now()
+    today = current_moment.date()
+    requested_date = order_date or today
+    candidate_date = requested_date
+    reasons: list[str] = []
+
+    if candidate_date < today:
+        candidate_date = today
+        reasons.append("data de pedido anterior ao dia atual")
+
+    if not is_business_day(candidate_date):
+        candidate_date = first_business_day_on_or_after(candidate_date)
+        reasons.append("data de pedido fora de dia util")
+
+    if candidate_date == today and current_moment.time() > SAME_DAY_CUTOFF:
+        candidate_date = next_business_day(candidate_date)
+        reasons.append("cadastro realizado apos 10:30")
+
+    while count_scheduled_activations_for_day(
+        cursor,
+        candidate_date,
+        exclude_activation_id=exclude_activation_id,
+    ) >= DAILY_ACTIVATION_LIMIT:
+        candidate_date = next_business_day(candidate_date)
+        if "limite diario de 8 ativacoes atingido" not in reasons:
+            reasons.append("limite diario de 8 ativacoes atingido")
+
+    return SchedulePreviewResponse(
+        activation_date=candidate_date,
+        activation_time=DEFAULT_ACTIVATION_TIME,
+        scheduling_message=build_scheduling_message(candidate_date, reasons, today=today),
+    )
 
 
 def activation_base_query() -> str:
@@ -33,7 +138,11 @@ def activation_base_query() -> str:
     """
 
 
-def row_to_activation(row: sqlite3.Row) -> ActivationResponse:
+def row_to_activation(
+    row: sqlite3.Row,
+    *,
+    scheduling_message: str | None = None,
+) -> ActivationResponse:
     return ActivationResponse(
         id=row["id"],
         motorcycle_model=row["motorcycle_model"],
@@ -54,6 +163,7 @@ def row_to_activation(row: sqlite3.Row) -> ActivationResponse:
         updated_at=datetime.fromisoformat(row["updated_at"]),
         created_by=row["created_by"],
         last_changed_by=row["last_changed_by"],
+        scheduling_message=scheduling_message,
     )
 
 
@@ -132,9 +242,22 @@ def get_activation(activation_id: int) -> ActivationResponse:
     return row_to_activation(row)
 
 
-def create_activation(payload: ActivationCreate, current_user: CurrentUser) -> ActivationResponse:
+def preview_activation_schedule(order_date: date | None) -> SchedulePreviewResponse:
+    with db_cursor() as cursor:
+        return calculate_activation_schedule(cursor, order_date)
+
+
+def create_activation(
+    payload: ActivationCreate,
+    current_user: CurrentUser,
+    *,
+    auto_schedule: bool = True,
+) -> ActivationResponse:
     now = iso_now()
     with db_cursor(commit=True) as cursor:
+        schedule_preview = calculate_activation_schedule(cursor, payload.order_date) if auto_schedule else None
+        activation_date = schedule_preview.activation_date if schedule_preview else payload.activation_date
+        activation_time = schedule_preview.activation_time if schedule_preview else payload.activation_time
         seller_person = ensure_person(
             cursor,
             name=payload.seller_responsible_name,
@@ -170,8 +293,8 @@ def create_activation(payload: ActivationCreate, current_user: CurrentUser) -> A
                 payload.order_date.isoformat() if payload.order_date else None,
                 seller_person["name"],
                 seller_person["id"],
-                payload.activation_date.isoformat(),
-                payload.activation_time.isoformat(timespec="minutes"),
+                activation_date.isoformat(),
+                activation_time.isoformat(timespec="minutes"),
                 payload.client_name,
                 payload.client_cpf,
                 payload.notes,
@@ -198,7 +321,7 @@ def create_activation(payload: ActivationCreate, current_user: CurrentUser) -> A
             new_value=activation_snapshot(created),
             details="Ativação criada.",
         )
-    return row_to_activation(created)
+    return row_to_activation(created, scheduling_message=schedule_preview.scheduling_message if schedule_preview else None)
 
 
 def update_activation(activation_id: int, payload: ActivationUpdate, current_user: CurrentUser) -> ActivationResponse:
@@ -215,6 +338,8 @@ def update_activation(activation_id: int, payload: ActivationUpdate, current_use
         updates: list[str] = []
         values: list[Any] = []
         seller_person_id = current["seller_responsible_id"]
+        scheduling_message: str | None = None
+        current_order_date = date.fromisoformat(current["order_date"]) if current["order_date"] else None
 
         if "seller_responsible_name" in update_data:
             seller_person = ensure_person(
@@ -226,6 +351,22 @@ def update_activation(activation_id: int, payload: ActivationUpdate, current_use
             updates.extend(["seller = ?", "seller_responsible_id = ?"])
             values.extend([seller_person["name"], seller_person["id"]])
             seller_person_id = seller_person["id"]
+
+        requested_order_date = update_data.get("order_date", current_order_date)
+        order_date_changed = requested_order_date != current_order_date
+
+        update_data.pop("activation_date", None)
+        update_data.pop("activation_time", None)
+
+        if order_date_changed:
+            schedule_preview = calculate_activation_schedule(
+                cursor,
+                requested_order_date,
+                exclude_activation_id=activation_id,
+            )
+            update_data["activation_date"] = schedule_preview.activation_date
+            update_data["activation_time"] = schedule_preview.activation_time
+            scheduling_message = schedule_preview.scheduling_message
 
         for key, value in update_data.items():
             if key == "order_date" and value is not None:
@@ -258,7 +399,7 @@ def update_activation(activation_id: int, payload: ActivationUpdate, current_use
             new_value=activation_snapshot(updated),
             details="Ativação atualizada.",
         )
-    return row_to_activation(updated)
+    return row_to_activation(updated, scheduling_message=scheduling_message)
 
 
 def cancel_activation(activation_id: int, current_user: CurrentUser) -> ActivationResponse:

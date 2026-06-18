@@ -357,7 +357,7 @@ def import_excel(file_bytes: bytes, current_user: CurrentUser) -> ImportResult:
 
     for sheet_name, row_number, payload in parsed_rows:
         try:
-            create_activation(payload, current_user)
+            create_activation(payload, current_user, auto_schedule=False)
             imported += 1
         except Exception as exc:
             errors.append(f"Aba {sheet_name}, linha {row_number}: {exc}")

@@ -1,6 +1,7 @@
 const API_BASE = "/api";
 const STATUS_ORDER = ["Pendente", "Em andamento", "Finalizado", "Cancelado"];
 const DEFAULT_AUTO_REFRESH_SECONDS = 15;
+const CHASSIS_PATTERN = /^[A-Z]{2}\d{6}$/;
 
 const NAV_ITEMS = {
     ADMIN: [
@@ -57,11 +58,13 @@ const elements = {
     sellerFormTitle: document.getElementById("sellerFormTitle"),
     motorcycleModel: document.getElementById("motorcycleModel"),
     chassis: document.getElementById("chassis"),
+    chassisError: document.getElementById("chassisError"),
     orderDate: document.getElementById("orderDate"),
     sellerResponsibleInput: document.getElementById("sellerResponsibleInput"),
     sellerResponsibleOptions: document.getElementById("sellerResponsibleOptions"),
     activationDate: document.getElementById("activationDate"),
     activationTime: document.getElementById("activationTime"),
+    schedulePreviewMessage: document.getElementById("schedulePreviewMessage"),
     clientName: document.getElementById("clientName"),
     clientCpf: document.getElementById("clientCpf"),
     notes: document.getElementById("notes"),
@@ -83,6 +86,7 @@ const elements = {
     mechanicResponsibleInput: document.getElementById("mechanicResponsibleInput"),
     mechanicResponsibleOptions: document.getElementById("mechanicResponsibleOptions"),
     mechanicDate: document.getElementById("mechanicDate"),
+    mechanicSummary: document.getElementById("mechanicSummary"),
     mechanicList: document.getElementById("mechanicList"),
     userForm: document.getElementById("userForm"),
     userName: document.getElementById("userName"),
@@ -135,6 +139,7 @@ const state = {
     focusedActivationHistoryId: null,
     settings: null,
     autoRefreshId: null,
+    schedulePreviewRequestId: 0,
 };
 
 function todayString() {
@@ -299,12 +304,73 @@ async function loadResponsibleLists() {
     populateDatalist(elements.mechanicResponsibleOptions, mechanicPeople);
 }
 
+function setSchedulePreviewMessage(message) {
+    elements.schedulePreviewMessage.textContent = message;
+}
+
+function setChassisError(message = "") {
+    const hasError = Boolean(message);
+    elements.chassis.classList.toggle("is-invalid", hasError);
+    elements.chassisError.textContent = hasError ? message : "Modelo de chassi errado";
+    elements.chassisError.classList.toggle("is-hidden", !hasError);
+}
+
+function validateChassisField() {
+    const value = elements.chassis.value.trim();
+    if (!value) {
+        setChassisError("");
+        return true;
+    }
+    if (!CHASSIS_PATTERN.test(value)) {
+        setChassisError("Modelo de chassi errado");
+        return false;
+    }
+    setChassisError("");
+    return true;
+}
+
+async function loadSchedulePreview({ showError = false } = {}) {
+    if (!state.token) {
+        elements.activationDate.value = elements.orderDate.value || todayString();
+        elements.activationTime.value = "17:00";
+        setSchedulePreviewMessage("O sistema calcula automaticamente a data de ativacao e fixa o horario em 17:00.");
+        return;
+    }
+
+    const requestId = ++state.schedulePreviewRequestId;
+    const query = new URLSearchParams();
+    if (elements.orderDate.value) {
+        query.set("order_date", elements.orderDate.value);
+    }
+
+    try {
+        const preview = await apiFetch(`/activations/schedule-preview?${query.toString()}`);
+        if (requestId !== state.schedulePreviewRequestId) return;
+        elements.activationDate.value = preview.activation_date;
+        elements.activationTime.value = formatTime(preview.activation_time);
+        setSchedulePreviewMessage(preview.scheduling_message);
+    } catch (error) {
+        if (requestId !== state.schedulePreviewRequestId) return;
+        elements.activationDate.value = elements.orderDate.value || todayString();
+        elements.activationTime.value = "17:00";
+        setSchedulePreviewMessage("Nao foi possivel calcular a agenda automatica agora.");
+        if (showError) {
+            showToast(error.message, true);
+        }
+    }
+}
+
 function resetSellerForm() {
     elements.activationForm.reset();
     elements.activationId.value = "";
     elements.sellerFormTitle.textContent = "Nova ativação";
+    elements.orderDate.value = todayString();
     elements.activationDate.value = todayString();
+    elements.activationTime.value = "17:00";
     elements.status.value = "Pendente";
+    setChassisError("");
+    setSchedulePreviewMessage("Calculando a proxima vaga disponivel...");
+    void loadSchedulePreview();
 }
 
 function sellerPayloadFromForm() {
@@ -312,7 +378,7 @@ function sellerPayloadFromForm() {
     return {
         motorcycle_model: elements.motorcycleModel.value.trim(),
         chassis: elements.chassis.value.trim(),
-        order_date: elements.orderDate.value || null,
+        order_date: elements.orderDate.value || todayString(),
         seller_responsible_name: elements.sellerResponsibleInput.value.trim(),
         activation_date: elements.activationDate.value,
         activation_time: elements.activationTime.value,
@@ -337,6 +403,8 @@ function fillSellerForm(row) {
     elements.clientCpf.value = row.client_cpf;
     elements.notes.value = row.notes || "";
     elements.status.value = row.status;
+    setChassisError("");
+    setSchedulePreviewMessage("Ao alterar a data de pedido, o sistema recalcula automaticamente a data de ativacao para a proxima vaga.");
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -442,31 +510,144 @@ async function loadDashboard() {
     );
 }
 
+function renderMechanicSummary(rows) {
+    const pendingCount = rows.filter((row) => row.status === "Pendente").length;
+    const inProgressCount = rows.filter((row) => row.status === "Em andamento").length;
+    const finishedCount = rows.filter((row) => row.status === "Finalizado").length;
+    const cancelledCount = rows.filter((row) => row.status === "Cancelado").length;
+    const queueCount = pendingCount + inProgressCount;
+
+    elements.mechanicSummary.innerHTML = `
+        <article class="office-stat-card">
+            <span>Na fila</span>
+            <strong>${queueCount}</strong>
+        </article>
+        <article class="office-stat-card">
+            <span>Em andamento</span>
+            <strong>${inProgressCount}</strong>
+        </article>
+        <article class="office-stat-card">
+            <span>Finalizadas</span>
+            <strong>${finishedCount}</strong>
+        </article>
+        <article class="office-stat-card">
+            <span>Canceladas</span>
+            <strong>${cancelledCount}</strong>
+        </article>
+    `;
+}
+
+function renderMechanicCard(row) {
+    const quickActions = [];
+    if (row.status === "Pendente") {
+        quickActions.push(`
+            <button
+                type="button"
+                class="mechanic-action-button mechanic-action-start"
+                data-status-action="Em andamento"
+                data-id="${row.id}"
+            >
+                Iniciar serviço
+            </button>
+        `);
+    }
+    if (row.status !== "Finalizado" && row.status !== "Cancelado") {
+        quickActions.push(`
+            <button
+                type="button"
+                class="mechanic-action-button mechanic-action-finish"
+                data-status-action="Finalizado"
+                data-id="${row.id}"
+            >
+                Marcar como finalizada
+            </button>
+        `);
+    }
+
+    const footerMarkup = `
+        <div class="mechanic-status-editor">
+            <label class="mechanic-status-field">
+                Alterar status
+                <select data-status-select-id="${row.id}">
+                    ${STATUS_ORDER.map((status) => `
+                        <option value="${status}" ${row.status === status ? "selected" : ""}>${status}</option>
+                    `).join("")}
+                </select>
+            </label>
+            <button
+                type="button"
+                class="mechanic-action-button mechanic-action-save"
+                data-status-save="true"
+                data-id="${row.id}"
+            >
+                Salvar status
+            </button>
+        </div>
+        ${quickActions.length ? `<div class="mechanic-card-actions">${quickActions.join("")}</div>` : `
+            <div class="mechanic-card-state ${row.status === "Finalizado" ? "is-finished" : "is-cancelled"}">
+                ${row.status === "Finalizado" ? "Serviço concluído" : "Registro cancelado"}
+            </div>
+        `}
+    `;
+
+    return `
+        <article class="mechanic-card mechanic-card-${statusClassName(row.status)}">
+            <div class="mechanic-card-header">
+                <div>
+                    <span class="mechanic-order-tag">Chegada #${row.id}</span>
+                    <strong>${row.motorcycle_model}</strong>
+                </div>
+                <span class="status-pill ${statusClassName(row.status)}">${row.status}</span>
+            </div>
+            <div class="mechanic-meta-grid">
+                <span class="mechanic-meta-chip"><b>Chassi</b> ${row.chassis}</span>
+                <span class="mechanic-meta-chip"><b>Cliente</b> ${row.client_name}</span>
+                <span class="mechanic-meta-chip"><b>Vendedor</b> ${row.seller_responsible_name}</span>
+                <span class="mechanic-meta-chip"><b>Entrega</b> ${formatDate(row.activation_date)} às ${formatTime(row.activation_time)}</span>
+                <span class="mechanic-meta-chip"><b>Mecânico</b> ${row.mechanic_responsible_name || "-"}</span>
+            </div>
+            <label class="mechanic-notes-field">
+                Observações do mecânico
+                <textarea rows="3" data-notes-id="${row.id}" placeholder="Descreva o andamento ou a finalização do serviço">${row.mechanic_notes || ""}</textarea>
+            </label>
+            ${footerMarkup}
+        </article>
+    `;
+}
+
 function renderMechanicList(rows) {
     state.mechanicRows = rows;
+    renderMechanicSummary(rows);
+
     if (!rows.length) {
         elements.mechanicList.innerHTML = '<div class="empty-state">Nenhuma ativação para a data selecionada.</div>';
         return;
     }
 
-    elements.mechanicList.innerHTML = rows.map((row) => `
-        <article class="mechanic-card">
-            <strong>${row.motorcycle_model}</strong>
-            <div class="mechanic-meta">
-                <span>#${row.id} | ${row.chassis}</span>
-                <span>${formatDate(row.activation_date)} às ${formatTime(row.activation_time)}</span>
-                <span>Cliente: ${row.client_name}</span>
-                <span>Vendedor responsável: ${row.seller_responsible_name}</span>
-                <span>Mecânico atual: ${row.mechanic_responsible_name || "-"}</span>
-                <span>Status: ${row.status}</span>
+    const activeRows = rows.filter((row) => row.status === "Pendente" || row.status === "Em andamento");
+    const archivedRows = rows.filter((row) => row.status === "Finalizado" || row.status === "Cancelado");
+
+    elements.mechanicList.innerHTML = `
+        <section class="mechanic-queue-group">
+            <div class="mechanic-queue-header">
+                <div>
+                    <h3>Fila operacional</h3>
+                    <p>Use os botões para iniciar o serviço ou marcar a moto como finalizada.</p>
+                </div>
             </div>
-            <textarea rows="3" data-notes-id="${row.id}" placeholder="Observações do mecânico">${row.mechanic_notes || ""}</textarea>
-            <div class="mechanic-card-actions">
-                <button type="button" data-status-action="Em andamento" data-id="${row.id}">Iniciar serviço</button>
-                <button type="button" data-status-action="Finalizado" data-id="${row.id}">Finalizar</button>
+            <div class="mechanic-grid">
+                ${activeRows.length ? activeRows.map(renderMechanicCard).join("") : '<div class="empty-state">Nenhuma moto pendente ou em andamento nesta data.</div>'}
             </div>
-        </article>
-    `).join("");
+        </section>
+        ${archivedRows.length ? `
+            <details class="mechanic-history-group">
+                <summary>Concluídas e canceladas (${archivedRows.length})</summary>
+                <div class="mechanic-grid mechanic-grid-archived">
+                    ${archivedRows.map(renderMechanicCard).join("")}
+                </div>
+            </details>
+        ` : ""}
+    `;
 }
 
 async function loadMechanicList() {
@@ -493,6 +674,7 @@ function renderUsersTable(rows) {
                     <button type="button" data-user-action="edit" data-id="${row.id}">Editar</button>
                     <button type="button" data-user-action="toggle" data-id="${row.id}">${row.active ? "Desativar" : "Ativar"}</button>
                     <button type="button" data-user-action="password" data-id="${row.id}">Senha</button>
+                    <button type="button" data-user-action="delete" data-id="${row.id}">Excluir</button>
                 </div>
             </td>
         </tr>
@@ -622,6 +804,9 @@ async function loadRouteData(route) {
     }
     if (route === "/vendedor") {
         await Promise.all([loadResponsibleLists(), loadSellerTable()]);
+        if (!elements.activationId.value) {
+            await loadSchedulePreview();
+        }
         return;
     }
     if (route === "/oficina") {
@@ -715,6 +900,49 @@ async function submitSellerForm(event) {
     }
 }
 
+async function submitSellerFormWithSchedule(event) {
+    event.preventDefault();
+    try {
+        if (!validateChassisField()) {
+            elements.chassis.focus();
+            return;
+        }
+        const payload = sellerPayloadFromForm();
+        if (!payload.seller_responsible_name) {
+            throw new Error("Informe o vendedor responsavel.");
+        }
+
+        if (elements.activationId.value) {
+            const response = await apiFetch(`/activations/${elements.activationId.value}`, {
+                method: "PUT",
+                body: JSON.stringify(payload),
+            });
+            showToast(response?.scheduling_message || "Ativacao atualizada.");
+        } else {
+            const response = await apiFetch("/activations", {
+                method: "POST",
+                body: JSON.stringify(payload),
+            });
+            showToast(response?.scheduling_message || "Ativacao criada.");
+        }
+
+        resetSellerForm();
+        await Promise.all([
+            loadResponsibleLists(),
+            loadSellerTable(),
+            state.user.profile === "ADMIN" ? loadDashboard() : Promise.resolve(),
+            loadMechanicList().catch(() => null),
+        ]);
+    } catch (error) {
+        if (String(error.message || "").toLowerCase().includes("chassi")) {
+            setChassisError("Modelo de chassi errado");
+            elements.chassis.focus();
+            return;
+        }
+        showToast(error.message, true);
+    }
+}
+
 async function handleSellerTableClick(event) {
     const button = event.target.closest("button[data-action]");
     if (!button) return;
@@ -773,7 +1001,7 @@ async function submitImportForm(event) {
 }
 
 async function handleMechanicAction(event) {
-    const button = event.target.closest("button[data-status-action]");
+    const button = event.target.closest("button[data-status-action], button[data-status-save]");
     if (!button) return;
     try {
         const mechanicName = elements.mechanicResponsibleInput.value.trim();
@@ -782,10 +1010,17 @@ async function handleMechanicAction(event) {
         }
         const id = Number(button.dataset.id);
         const notesField = document.querySelector(`[data-notes-id="${id}"]`);
+        const statusSelect = document.querySelector(`[data-status-select-id="${id}"]`);
+        const nextStatus = button.dataset.statusSave === "true"
+            ? statusSelect?.value
+            : button.dataset.statusAction;
+        if (!nextStatus) {
+            throw new Error("Selecione um status para continuar.");
+        }
         await apiFetch(`/activations/${id}/status`, {
             method: "PATCH",
             body: JSON.stringify({
-                status: button.dataset.statusAction,
+                status: nextStatus,
                 mechanic_notes: notesField ? notesField.value.trim() : "",
                 mechanic_responsible_name: mechanicName,
             }),
@@ -859,6 +1094,13 @@ async function handleUsersTableClick(event) {
                 body: JSON.stringify({ password }),
             });
             showToast("Senha alterada.");
+        }
+        if (button.dataset.userAction === "delete") {
+            if (!window.confirm(`Excluir o usuário ${user.username}? Esta ação remove o login de forma definitiva.`)) return;
+            await apiFetch(`/admin/users/${user.id}`, {
+                method: "DELETE",
+            });
+            showToast("Usuário excluído.");
         }
         await loadUsers();
     } catch (error) {
@@ -979,8 +1221,23 @@ function bindEvents() {
             showToast(error.message, true);
         }
     });
-    elements.activationForm.addEventListener("submit", submitSellerForm);
+    elements.activationForm.addEventListener("submit", submitSellerFormWithSchedule);
     elements.resetSellerFormButton.addEventListener("click", resetSellerForm);
+    elements.chassis.addEventListener("input", () => {
+        if (!elements.chassis.value.trim()) {
+            setChassisError("");
+            return;
+        }
+        validateChassisField();
+    });
+    elements.chassis.addEventListener("blur", validateChassisField);
+    elements.orderDate.addEventListener("change", async () => {
+        try {
+            await loadSchedulePreview({ showError: true });
+        } catch (error) {
+            showToast(error.message, true);
+        }
+    });
     elements.sellerFilters.addEventListener("submit", async (event) => {
         event.preventDefault();
         try {

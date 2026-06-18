@@ -25,6 +25,7 @@
             </form>
             <div class="helper-list">
                 
+                //TESTE
                 
             </div>
         </div>
@@ -111,10 +112,13 @@
                             <label>
                                 Chassi
                                 <input type="text" id="chassis" required maxlength="80">
+                                <span id="chassisError" class="field-error is-hidden" aria-live="polite">
+                                    Modelo de chassi errado
+                                </span>
                             </label>
                             <label>
                                 Data de pedido
-                                <input type="date" id="orderDate">
+                                <input type="date" id="orderDate" required>
                             </label>
                             <label>
                                 Vendedor responsável
@@ -123,12 +127,15 @@
                             <datalist id="sellerResponsibleOptions"></datalist>
                             <label>
                                 Data de ativação
-                                <input type="date" id="activationDate" required>
+                                <input type="date" id="activationDate" required readonly>
                             </label>
                             <label>
                                 Horário
-                                <input type="time" id="activationTime" required>
+                                <input type="time" id="activationTime" required readonly>
                             </label>
+                            <p id="schedulePreviewMessage" class="helper-text full-width">
+                                O sistema calcula automaticamente a data de ativacao e fixa o horario em 17:00.
+                            </p>
                             <label>
                                 Cliente
                                 <input type="text" id="clientName" required maxlength="160">
@@ -250,7 +257,17 @@
                 <div class="section-header">
                     <div>
                         <h2>Tela da oficina</h2>
-                        <p>A oficina só acessa a fila operacional e os controles de início/finalização.</p>
+                        <p>A oficina acessa uma fila direta para iniciar o serviço e marcar a moto como finalizada.</p>
+                    </div>
+                </div>
+
+                <section class="office-console">
+                    <div class="office-console-copy">
+                        <p class="office-console-label">Operação da oficina</p>
+                        <h3>Fila do mecânico</h3>
+                        <p class="auto-refresh-note">
+                            Atualização automática da fila a cada poucos segundos.
+                        </p>
                     </div>
                     <div class="mechanic-tools">
                         <label>
@@ -263,13 +280,10 @@
                             <input type="date" id="mechanicDate">
                         </label>
                     </div>
-                </div>
+                    <div id="mechanicSummary" class="office-stats"></div>
+                </section>
 
-                <div class="auto-refresh-note">
-                    Atualização automática da fila a cada poucos segundos.
-                </div>
-
-                <div id="mechanicList" class="mechanic-grid"></div>
+                <div id="mechanicList" class="mechanic-queue"></div>
             </section>
 
             <section id="usersSection" class="view-panel admin-only" data-role-visibility="ADMIN">

@@ -6,7 +6,16 @@ from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, statu
 from fastapi.responses import PlainTextResponse
 
 from ..auth import CurrentUser, get_current_user, require_roles
-from ..schemas import ActivationCreate, ActivationResponse, ActivationUpdate, AuditLogResponse, DashboardResponse, ImportResult, StatusUpdate
+from ..schemas import (
+    ActivationCreate,
+    ActivationResponse,
+    ActivationUpdate,
+    AuditLogResponse,
+    DashboardResponse,
+    ImportResult,
+    SchedulePreviewResponse,
+    StatusUpdate,
+)
 from ..services.activation_service import (
     cancel_activation,
     create_activation,
@@ -16,6 +25,7 @@ from ..services.activation_service import (
     get_activation,
     get_history,
     list_activations,
+    preview_activation_schedule,
     update_activation,
     update_status,
 )
@@ -50,6 +60,14 @@ def list_activations_endpoint(
         chassis=chassis,
         client=client,
     )
+
+
+@router.get("/activations/schedule-preview", response_model=SchedulePreviewResponse)
+def schedule_preview_endpoint(
+    order_date: date | None = None,
+    current_user: CurrentUser = Depends(require_roles("ADMIN", "VENDEDOR")),
+) -> SchedulePreviewResponse:
+    return preview_activation_schedule(order_date)
 
 
 @router.get("/activations/{activation_id}", response_model=ActivationResponse)

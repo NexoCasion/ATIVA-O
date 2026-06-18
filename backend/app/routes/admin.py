@@ -4,7 +4,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response, status as http_status
 
 from ..auth import CurrentUser, require_roles
 from ..config import BACKUP_DIR, DATABASE_PATH
@@ -12,7 +12,7 @@ from ..schemas import AuditLogResponse, BackupResponse, PasswordChangeRequest, P
 from ..services.audit_service import list_audit_logs, log_event
 from ..services.people_service import list_people, update_person
 from ..services.settings_service import get_settings, update_settings
-from ..services.user_service import change_password, create_user, list_users, update_user
+from ..services.user_service import change_password, create_user, delete_user, list_users, update_user
 from ..database import db_cursor
 from ..security import iso_now
 
@@ -50,6 +50,15 @@ def update_user_password_endpoint(
     current_user: CurrentUser = Depends(require_roles("ADMIN")),
 ) -> UserResponse:
     return change_password(user_id, payload, current_user)
+
+
+@router.delete("/admin/users/{user_id}", status_code=http_status.HTTP_204_NO_CONTENT)
+def delete_user_endpoint(
+    user_id: int,
+    current_user: CurrentUser = Depends(require_roles("ADMIN")),
+) -> Response:
+    delete_user(user_id, current_user)
+    return Response(status_code=http_status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/admin/people", response_model=list[PersonResponse])

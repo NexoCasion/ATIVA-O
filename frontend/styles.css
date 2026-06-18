@@ -89,6 +89,17 @@ select {
     color: var(--muted);
 }
 
+.helper-text {
+    margin: 0;
+}
+
+.field-error {
+    color: #b42318;
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
 .session-badge {
     position: relative;
     align-self: flex-start;
@@ -286,6 +297,18 @@ select {
     border: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.92);
     color: var(--text);
+}
+
+input[readonly],
+textarea[readonly] {
+    background: rgba(242, 236, 227, 0.96);
+}
+
+input.is-invalid,
+textarea.is-invalid,
+select.is-invalid {
+    border-color: #b42318;
+    box-shadow: 0 0 0 2px rgba(180, 35, 24, 0.14);
 }
 
 input:focus,
@@ -518,22 +541,246 @@ tbody td {
     color: var(--muted);
 }
 
-.mechanic-grid {
+.office-console {
     display: grid;
-    gap: 16px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.mechanic-card {
-    padding: 20px;
+    gap: 18px;
+    margin-bottom: 18px;
+    padding: 22px;
     border-radius: var(--radius);
-    background: var(--panel);
+    background: linear-gradient(135deg, rgba(255, 250, 245, 0.96), rgba(245, 236, 224, 0.86));
     border: 1px solid rgba(219, 201, 181, 0.85);
     box-shadow: var(--shadow);
 }
 
-.mechanic-card textarea {
-    margin-top: 12px;
+.office-console-copy h3,
+.mechanic-queue-header h3 {
+    margin: 6px 0 0;
+    font-family: var(--font-title);
+}
+
+.office-console-label {
+    margin: 0;
+    color: var(--primary);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.mechanic-tools {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
+
+.office-stats {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.office-stat-card {
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(219, 201, 181, 0.82);
+}
+
+.office-stat-card span {
+    display: block;
+    color: var(--muted);
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+.office-stat-card strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 1.7rem;
+    font-family: var(--font-title);
+}
+
+.mechanic-queue {
+    display: grid;
+    gap: 18px;
+}
+
+.mechanic-queue-group {
+    display: grid;
+    gap: 14px;
+}
+
+.mechanic-queue-header p {
+    margin: 6px 0 0;
+    color: var(--muted);
+}
+
+.mechanic-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.mechanic-card {
+    display: grid;
+    gap: 14px;
+    padding: 22px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(249, 242, 232, 0.92));
+    border: 1px solid rgba(219, 201, 181, 0.85);
+    box-shadow: var(--shadow);
+}
+
+.mechanic-card-status-pendente {
+    border-color: rgba(217, 119, 6, 0.36);
+}
+
+.mechanic-card-status-em-andamento {
+    border-color: rgba(15, 118, 110, 0.36);
+    box-shadow: 0 18px 34px rgba(15, 118, 110, 0.12);
+}
+
+.mechanic-card-status-finalizado {
+    border-color: rgba(21, 128, 61, 0.3);
+}
+
+.mechanic-card-status-cancelado {
+    border-color: rgba(194, 65, 12, 0.3);
+}
+
+.mechanic-card-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.mechanic-order-tag {
+    display: inline-flex;
+    margin-bottom: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(15, 118, 110, 0.1);
+    color: var(--primary);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.mechanic-meta-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mechanic-meta-chip {
+    padding: 11px 12px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(219, 201, 181, 0.74);
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.35;
+}
+
+.mechanic-meta-chip b {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.mechanic-notes-field {
+    gap: 10px;
+}
+
+.mechanic-card textarea,
+.mechanic-notes-field textarea {
+    min-height: 94px;
+    resize: vertical;
+}
+
+.mechanic-status-editor {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+}
+
+.mechanic-status-field {
+    gap: 10px;
+}
+
+.mechanic-card-actions {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mechanic-action-button {
+    min-height: 52px;
+    border-radius: 14px;
+    border: 1px solid rgba(219, 201, 181, 0.92);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mechanic-action-start {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--text);
+}
+
+.mechanic-action-finish {
+    background: var(--primary);
+    color: #f7fffd;
+}
+
+.mechanic-action-save {
+    background: #ead7c0;
+    color: #473527;
+    min-width: 148px;
+}
+
+.mechanic-action-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.mechanic-card-state {
+    padding: 13px 14px;
+    border-radius: 14px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.mechanic-card-state.is-finished {
+    background: rgba(21, 128, 61, 0.14);
+    color: var(--success);
+}
+
+.mechanic-card-state.is-cancelled {
+    background: rgba(194, 65, 12, 0.14);
+    color: var(--danger);
+}
+
+.mechanic-history-group {
+    padding: 18px;
+    border-radius: var(--radius);
+    background: rgba(255, 250, 245, 0.74);
+    border: 1px solid rgba(219, 201, 181, 0.82);
+}
+
+.mechanic-history-group summary {
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--muted);
+}
+
+.mechanic-grid-archived {
+    margin-top: 14px;
 }
 
 .history-drawer {
@@ -659,6 +906,7 @@ td .row-actions button:disabled {
     .counter-grid,
     .mechanic-grid,
     .dashboard-alerts,
+    .office-stats,
     .seller-layout,
     .filter-grid-wide,
     .two-column-grid {
@@ -690,11 +938,19 @@ td .row-actions button:disabled {
     .board-grid,
     .mechanic-grid,
     .dashboard-alerts,
+    .office-stats,
     .form-grid,
     .filter-grid,
     .filter-grid-wide,
     .seller-layout,
     .two-column-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mechanic-tools,
+    .mechanic-status-editor,
+    .mechanic-meta-grid,
+    .mechanic-card-actions {
         grid-template-columns: 1fr;
     }
 

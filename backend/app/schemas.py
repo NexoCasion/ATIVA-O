@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, time
 from typing import Any, Literal
 
@@ -9,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 StatusType = Literal["Pendente", "Em andamento", "Finalizado", "Cancelado"]
 ProfileType = Literal["ADMIN", "VENDEDOR", "OFICINA"]
 PersonType = Literal["VENDEDOR", "MECANICO"]
+CHASSIS_PATTERN = re.compile(r"^[A-Z]{2}\d{6}$")
 
 
 class BaseTextModel(BaseModel):
@@ -18,9 +20,11 @@ class BaseTextModel(BaseModel):
 
     @staticmethod
     def normalize_chassis_value(value: str | None) -> str:
-        normalized = BaseTextModel.clean_text(value).upper()
+        normalized = BaseTextModel.clean_text(value)
         if not normalized:
             raise ValueError("O chassi e obrigatorio.")
+        if not CHASSIS_PATTERN.fullmatch(normalized):
+            raise ValueError("O chassi deve seguir o formato de 2 letras maiusculas e 6 numeros, como TR645271.")
         return normalized
 
     @staticmethod
@@ -220,6 +224,12 @@ class StatusUpdate(BaseTextModel):
         return cls.clean_text(value)
 
 
+class SchedulePreviewResponse(BaseModel):
+    activation_date: date
+    activation_time: time
+    scheduling_message: str
+
+
 class ActivationResponse(BaseModel):
     id: int
     motorcycle_model: str
@@ -240,6 +250,7 @@ class ActivationResponse(BaseModel):
     updated_at: datetime
     created_by: str
     last_changed_by: str
+    scheduling_message: str | None = None
 
 
 class AuditLogResponse(BaseModel):

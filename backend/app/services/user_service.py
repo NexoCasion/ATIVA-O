@@ -156,3 +156,45 @@ def change_password(user_id: int, payload: PasswordChangeRequest, current_user: 
             details="Senha alterada.",
         )
     return row_to_user(updated)
+
+
+def delete_user(user_id: int, current_user: CurrentUser) -> None:
+    with db_cursor(commit=True) as cursor:
+        current = cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        if current is None:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+        if current["id"] == current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Você não pode excluir o próprio usuário enquanto está logado.",
+            )
+
+        if current["profile"] == "ADMIN":
+            other_admin = cursor.execute(
+                """
+                SELECT COUNT(*) AS total
+                FROM users
+                WHERE profile = 'ADMIN' AND active = 1 AND id <> ?
+                """,
+                (user_id,),
+            ).fetchone()
+            if int(other_admin["total"] or 0) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Mantenha pelo menos um usuário ADMIN ativo no sistema.",
+                )
+
+        log_event(
+            cursor,
+            entity_type="user",
+            entity_id=user_id,
+            action="user_deleted",
+            performed_by_user_id=current_user.id,
+            performed_by_login=current_user.username,
+            old_value=dict(current),
+            details="Usuário de login excluído.",
+        )
+        cursor.execute("DELETE FROM user_sessions WHERE user_id = ?", (user_id,))
+        cursor.execute("UPDATE audit_logs SET performed_by_user_id = NULL WHERE performed_by_user_id = ?", (user_id,))
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
