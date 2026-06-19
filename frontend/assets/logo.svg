@@ -1,0 +1,9 @@
+<svg width="372" height="120" viewBox="0 0 372 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="372" height="120" rx="18" fill="transparent"/>
+  <path d="M30.5 61.5L49.5 52.5L53.5 31.5L70.5 46.5L95.5 42.5L77.5 59.5L93.5 75.5L68.5 71.5L55.5 91.5L51.5 69.5L30.5 61.5Z" stroke="#D6001C" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M22 80C34 60 56 42 104 22" stroke="#D6001C" stroke-width="7" stroke-linecap="round"/>
+  <path d="M35 28C43 30 47 38 49 51" stroke="#D6001C" stroke-width="5" stroke-linecap="round"/>
+  <text x="118" y="40" fill="#6B7280" font-family="Bahnschrift, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="3">GRUPO</text>
+  <text x="118" y="78" fill="#111111" font-family="Bahnschrift, Segoe UI, Arial, sans-serif" font-size="48" font-weight="800" letter-spacing="1.5">UNIVERSO</text>
+  <text x="223" y="110" fill="#D6001C" font-family="Bahnschrift, Segoe UI, Arial, sans-serif" font-size="36" font-weight="800" letter-spacing="1.2">MOTOS</text>
+</svg>

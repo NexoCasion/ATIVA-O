@@ -2,24 +2,61 @@ const API_BASE = "/api";
 const STATUS_ORDER = ["Pendente", "Em andamento", "Finalizado", "Cancelado"];
 const DEFAULT_AUTO_REFRESH_SECONDS = 15;
 const CHASSIS_PATTERN = /^[A-Z]{2}\d{6}$/;
+const THEME_STORAGE_KEY = "uiTheme";
+const THEME_LABELS = {
+    light: "Tema escuro",
+    dark: "Tema claro",
+};
+
+const ICONS = Object.freeze({
+    dashboard: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="7" height="7" rx="2"></rect><rect x="14" y="3" width="7" height="7" rx="2"></rect><rect x="3" y="14" width="7" height="7" rx="2"></rect><rect x="14" y="14" width="7" height="7" rx="2"></rect></svg>`,
+    clipboard: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4.5V3h6v1.5M8.5 10h7M8.5 14h7M8.5 18h4"></path></svg>`,
+    wrench: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.7 6.3a4 4 0 0 0-5-5L12 3.6 9.6 6 7.3 3.7a4 4 0 0 0 5 5L4 17l3 3 8.3-8.3a4 4 0 0 0 5-5L18 9l-2.4-2.4L18 4.3"></path></svg>`,
+    shieldUser: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 20 6v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6l8-3Z"></path><circle cx="12" cy="9" r="2.2"></circle><path d="M8.5 15.5c.8-1.6 2-2.5 3.5-2.5s2.7.9 3.5 2.5"></path></svg>`,
+    users: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 19c.6-3.3 2.4-5 5.5-5s4.9 1.7 5.5 5M16 5.5a3 3 0 0 1 0 5.8M16.5 14c2.4.3 3.7 2 4 5"></path></svg>`,
+    history: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5M12 7v5l3 2"></path></svg>`,
+    sliders: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h7M15 6h5M4 12h3M11 12h9M4 18h9M17 18h3"></path><circle cx="13" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="18" r="2"></circle></svg>`,
+    clock: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
+    checkCircle: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.7 2.7L16.5 9"></path></svg>`,
+    xCircle: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path></svg>`,
+    queue: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h10M4 12h8M4 18h6"></path><circle cx="17" cy="15" r="4"></circle><path d="M17 13v2.5l1.5 1"></path></svg>`,
+});
+
+function iconSvg(name) {
+    return ICONS[name] || ICONS.dashboard;
+}
 
 const NAV_ITEMS = {
     ADMIN: [
-        { route: "/admin", label: "Dashboard" },
-        { route: "/vendedor", label: "Vendedor" },
-        { route: "/oficina", label: "Oficina" },
-        { route: "/admin/usuarios", label: "Usuários" },
-        { route: "/admin/responsaveis", label: "Responsáveis" },
-        { route: "/admin/historico", label: "Histórico" },
-        { route: "/admin/ferramentas", label: "Ferramentas" },
+        { route: "/admin", label: "Dashboard", icon: "dashboard" },
+        { route: "/vendedor", label: "Vendedor", icon: "clipboard" },
+        { route: "/oficina", label: "Oficina", icon: "wrench" },
+        { route: "/admin/usuarios", label: "Usuários", icon: "shieldUser" },
+        { route: "/admin/responsaveis", label: "Responsáveis", icon: "users" },
+        { route: "/admin/historico", label: "Histórico", icon: "history" },
+        { route: "/admin/ferramentas", label: "Ferramentas", icon: "sliders" },
     ],
     VENDEDOR: [
-        { route: "/vendedor", label: "Ativações" },
+        { route: "/vendedor", label: "Ativações", icon: "clipboard" },
     ],
     OFICINA: [
-        { route: "/oficina", label: "Oficina" },
+        { route: "/oficina", label: "Oficina", icon: "wrench" },
     ],
 };
+
+const COUNTER_META = {
+    "Pendente": { icon: "clock", description: "Aguardando entrada da oficina" },
+    "Em andamento": { icon: "wrench", description: "Serviços já iniciados" },
+    "Finalizado": { icon: "checkCircle", description: "Ativações concluídas" },
+    "Cancelado": { icon: "xCircle", description: "Registros cancelados" },
+};
+
+const MECHANIC_SUMMARY_META = [
+    { key: "queue", label: "Na fila", description: "Pendentes e em andamento", icon: "queue", className: "na-fila" },
+    { key: "inProgress", label: "Em andamento", description: "Em execução na oficina", icon: "wrench", className: "em-andamento" },
+    { key: "finished", label: "Finalizadas", description: "Concluídas no dia", icon: "checkCircle", className: "finalizadas" },
+    { key: "cancelled", label: "Canceladas", description: "Registros encerrados", icon: "xCircle", className: "canceladas" },
+];
 
 const SECTION_BY_ROUTE = {
     "/admin": "dashboardSection",
@@ -40,6 +77,7 @@ const elements = {
     sessionBadge: document.getElementById("sessionBadge"),
     sessionAvatar: document.getElementById("sessionAvatar"),
     logoutButton: document.getElementById("logoutButton"),
+    themeToggle: document.getElementById("themeToggle"),
     sessionUserLabel: document.getElementById("sessionUserLabel"),
     sessionProfileLabel: document.getElementById("sessionProfileLabel"),
     heroSubtitle: document.getElementById("heroSubtitle"),
@@ -167,9 +205,56 @@ function statusClassName(value) {
     return `status-${String(value).toLowerCase().replace(/\s+/g, "-")}`;
 }
 
+function getStoredTheme() {
+    const theme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return theme === "dark" ? "dark" : "light";
+}
+
+function syncThemeToggle() {
+    const theme = document.body.dataset.theme === "dark" ? "dark" : "light";
+    if (!elements.themeToggle) return;
+    const label = THEME_LABELS[theme];
+    const accessibleLabel = elements.themeToggle.querySelector(".sr-only");
+    if (accessibleLabel) accessibleLabel.textContent = label;
+    elements.themeToggle.setAttribute("aria-label", label);
+    elements.themeToggle.setAttribute("title", label);
+    elements.themeToggle.setAttribute("aria-pressed", String(theme === "dark"));
+}
+
+function applyTheme(theme) {
+    const nextTheme = theme === "dark" ? "dark" : "light";
+    document.body.dataset.theme = nextTheme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    syncThemeToggle();
+}
+
+function toggleTheme() {
+    const nextTheme = document.body.dataset.theme === "dark" ? "light" : "dark";
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+    if (reducedMotion) {
+        applyTheme(nextTheme);
+        return;
+    }
+
+    document.body.classList.add("theme-is-changing");
+    const updateTheme = () => applyTheme(nextTheme);
+    const finishTransition = () => document.body.classList.remove("theme-is-changing");
+
+    if (typeof document.startViewTransition === "function") {
+        const transition = document.startViewTransition(updateTheme);
+        transition.finished.finally(finishTransition);
+        return;
+    }
+
+    window.requestAnimationFrame(updateTheme);
+    window.clearTimeout(toggleTheme.timerId);
+    toggleTheme.timerId = window.setTimeout(finishTransition, 460);
+}
+
 function showToast(message, isError = false) {
     elements.toast.textContent = message;
-    elements.toast.style.background = isError ? "rgba(153, 27, 27, 0.95)" : "rgba(46, 36, 29, 0.94)";
+    elements.toast.classList.toggle("is-error", isError);
     elements.toast.classList.add("is-visible");
     window.clearTimeout(showToast.timerId);
     showToast.timerId = window.setTimeout(() => elements.toast.classList.remove("is-visible"), 2600);
@@ -273,7 +358,8 @@ function renderNav() {
     const items = NAV_ITEMS[state.user.profile] || [];
     elements.mainNav.innerHTML = items.map((item) => `
         <button class="view-button ${state.currentRoute === item.route ? "is-active" : ""}" data-route="${item.route}" type="button">
-            ${item.label}
+            <span class="view-button-mark">${iconSvg(item.icon)}</span>
+            <span>${item.label}</span>
         </button>
     `).join("");
 }
@@ -456,12 +542,19 @@ async function loadSellerTable() {
 }
 
 function renderCounters(counts) {
-    elements.dashboardCounters.innerHTML = STATUS_ORDER.map((status) => `
-        <article class="counter-card">
-            <p>${status}</p>
-            <strong>${counts[status] ?? 0}</strong>
-        </article>
-    `).join("");
+    elements.dashboardCounters.innerHTML = STATUS_ORDER.map((status) => {
+        const meta = COUNTER_META[status] || { icon: "dashboard", description: "Sem descricao" };
+        return `
+            <article class="counter-card counter-card-${statusClassName(status).replace("status-", "")}">
+                <span class="metric-icon">${iconSvg(meta.icon)}</span>
+                <div class="metric-copy">
+                    <p>${status}</p>
+                    <strong>${counts[status] ?? 0}</strong>
+                    <small>${meta.description}</small>
+                </div>
+            </article>
+        `;
+    }).join("");
 }
 
 function renderChipList(container, rows, emptyText) {
@@ -516,25 +609,23 @@ function renderMechanicSummary(rows) {
     const finishedCount = rows.filter((row) => row.status === "Finalizado").length;
     const cancelledCount = rows.filter((row) => row.status === "Cancelado").length;
     const queueCount = pendingCount + inProgressCount;
+    const summaryCounts = {
+        queue: queueCount,
+        inProgress: inProgressCount,
+        finished: finishedCount,
+        cancelled: cancelledCount,
+    };
 
-    elements.mechanicSummary.innerHTML = `
-        <article class="office-stat-card">
-            <span>Na fila</span>
-            <strong>${queueCount}</strong>
+    elements.mechanicSummary.innerHTML = MECHANIC_SUMMARY_META.map((item) => `
+        <article class="office-stat-card office-stat-card-${item.className}">
+            <span class="metric-icon">${iconSvg(item.icon)}</span>
+            <div class="metric-copy">
+                <p>${item.label}</p>
+                <strong>${summaryCounts[item.key]}</strong>
+                <small>${item.description}</small>
+            </div>
         </article>
-        <article class="office-stat-card">
-            <span>Em andamento</span>
-            <strong>${inProgressCount}</strong>
-        </article>
-        <article class="office-stat-card">
-            <span>Finalizadas</span>
-            <strong>${finishedCount}</strong>
-        </article>
-        <article class="office-stat-card">
-            <span>Canceladas</span>
-            <strong>${cancelledCount}</strong>
-        </article>
-    `;
+    `).join("");
 }
 
 function renderMechanicCard(row) {
@@ -1204,6 +1295,7 @@ async function performLogout() {
 function bindEvents() {
     elements.loginForm.addEventListener("submit", submitLogin);
     elements.logoutButton.addEventListener("click", performLogout);
+    elements.themeToggle?.addEventListener("click", toggleTheme);
     elements.mainNav.addEventListener("click", async (event) => {
         const button = event.target.closest("button[data-route]");
         if (!button) return;
@@ -1320,6 +1412,7 @@ async function restoreSession() {
 }
 
 async function bootstrap() {
+    applyTheme(getStoredTheme());
     bindEvents();
     resetSellerForm();
     elements.dashboardDate.value = todayString();

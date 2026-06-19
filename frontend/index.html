@@ -4,59 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ativação de Motos</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles.css?v=20260619-4">
 </head>
-<body>
+<body data-theme="light">
     <section id="loginScreen" class="login-shell">
         <div class="login-card">
-            <p class="eyebrow">Acesso protegido</p>
-            <h1>Ativação Oficina</h1>
-            <p class="hero-copy">Entre com um dos logins principais para acessar apenas o que seu perfil pode usar.</p>
+            <div class="login-brand">
+                <span class="logo-glow logo-glow-login">
+                    <img src="/assets/logo.png" alt="Grupo Universo Motos" class="brand-logo brand-logo-login">
+                </span>
+                <p class="login-eyebrow">Ambiente interno Honda/TI</p>
+                <h1>Ativação de Motos</h1>
+                <p class="login-subtitle">Faça login para acessar o sistema.</p>
+            </div>
+
             <form id="loginForm" class="login-form">
                 <label>
                     Usuário
-                    <input type="text" id="loginUsername" placeholder="admin, vendedor ou oficina" required>
+                    <input type="text" id="loginUsername" placeholder="admin, vendedor ou oficina" autocomplete="username" required>
                 </label>
                 <label>
                     Senha
-                    <input type="password" id="loginPassword" placeholder="Digite a senha" required>
+                    <input type="password" id="loginPassword" placeholder="Digite a senha" autocomplete="current-password" required>
                 </label>
                 <button type="submit" class="primary-button">Entrar</button>
             </form>
+
             <div class="helper-list">
-                
-                //TESTE
-                
+                <span>ADMIN</span>
+                <span>VENDEDOR</span>
+                <span>OFICINA</span>
             </div>
         </div>
     </section>
 
-    <div id="appShell" class="page-shell is-hidden">
-        <header class="hero">
-            <div>
-                <p class="eyebrow">Oficina e vendas no mesmo sistema</p>
-                <h1>Controle local de ativações de motos</h1>
-                <p class="hero-copy" id="heroSubtitle">
-                    Login por perfil, responsáveis separados e histórico completo de alterações.
-                </p>
-            </div>
-            <details class="session-badge" id="sessionBadge">
-                <summary class="session-badge-toggle" aria-label="Sessão atual">
-                    <span class="session-badge-dot" aria-hidden="true"></span>
-                    <span id="sessionAvatar" class="session-avatar">-</span>
-                </summary>
-                <div class="session-menu">
-                    <p class="session-menu-label">Sessão atual</p>
-                    <strong id="sessionUserLabel">-</strong>
-                    <small id="sessionProfileLabel">-</small>
-                    <button id="logoutButton" type="button" class="ghost-button">Sair</button>
+    <div id="appShell" class="app-shell is-hidden">
+        <header class="topbar">
+            <div class="topbar-brand">
+                <span class="logo-glow logo-glow-header">
+                    <img src="/assets/logo.png" alt="Grupo Universo Motos" class="brand-logo">
+                </span>
+                <div class="topbar-brand-copy">
+                    <p class="topbar-kicker">Grupo Universo Motos</p>
+                    <h1>Ativação de Motos</h1>
+                    <p class="hero-copy" id="heroSubtitle">
+                        Login por perfil, responsáveis separados e histórico completo de alterações.
+                    </p>
                 </div>
-            </details>
+            </div>
+
+            <div class="topbar-actions">
+                <button id="themeToggle" type="button" class="theme-toggle" aria-pressed="false" aria-label="Tema escuro" title="Tema escuro">
+                    <span class="theme-icon theme-icon-sun" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg>
+                    </span>
+                    <span class="theme-icon theme-icon-moon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" focusable="false"><path d="M20.2 15.2A8.5 8.5 0 0 1 8.8 3.8 8.5 8.5 0 1 0 20.2 15.2Z"></path></svg>
+                    </span>
+                    <span class="sr-only">Tema escuro</span>
+                </button>
+                <div class="session-panel" id="sessionBadge" aria-label="Sessão atual">
+                    <span id="sessionAvatar" class="session-avatar">-</span>
+                    <div class="session-copy">
+                        <strong id="sessionUserLabel">-</strong>
+                        <small id="sessionProfileLabel">-</small>
+                    </div>
+                </div>
+                <button id="logoutButton" type="button" class="ghost-button logout-button">
+                    <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M16 8l4 4-4 4M20 12H9"></path></svg>
+                    <span>Sair</span>
+                </button>
+            </div>
         </header>
 
         <nav id="mainNav" class="view-switcher" aria-label="Menu principal"></nav>
 
-        <main>
+        <main class="content-shell">
             <section id="dashboardSection" class="view-panel">
                 <div class="section-header">
                     <div>
@@ -71,7 +94,9 @@
                         <button type="submit" class="secondary-button">Atualizar</button>
                     </form>
                 </div>
+
                 <div id="dashboardCounters" class="counter-grid"></div>
+
                 <div class="dashboard-alerts">
                     <div class="alert-card">
                         <h3>Atrasadas</h3>
@@ -82,6 +107,7 @@
                         <div id="upcomingList" class="chip-list empty-state-small">Nenhuma ativação próxima.</div>
                     </div>
                 </div>
+
                 <div id="dashboardBoard" class="board-grid"></div>
             </section>
 
@@ -134,7 +160,7 @@
                                 <input type="time" id="activationTime" required readonly>
                             </label>
                             <p id="schedulePreviewMessage" class="helper-text full-width">
-                                O sistema calcula automaticamente a data de ativacao e fixa o horario em 17:00.
+                                O sistema calcula automaticamente a data de ativação e fixa o horário em 17:00.
                             </p>
                             <label>
                                 Cliente
@@ -580,6 +606,6 @@
     </div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="/app.js" defer></script>
+    <script src="/app.js?v=20260619-3" defer></script>
 </body>
 </html>
