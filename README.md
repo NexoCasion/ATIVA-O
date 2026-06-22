@@ -7,7 +7,7 @@ Sistema web local para substituir a planilha Excel compartilhada usada no cadast
 - Backend com `FastAPI` e API REST.
 - Banco `SQLite` com estrutura simples de migrar depois para PostgreSQL ou MySQL.
 - Cadastro completo de ativacoes.
-- Tela de vendedores com formulario, filtros, edicao e importacao da planilha antiga.
+- Tela de vendedores com formulario, filtros, edicao e listagem responsiva.
 - Tela de mecanicos com mudanca de status e atualizacao automatica sem recarregar a pagina.
 - Painel do dia com contadores, separacao por status e destaque de atrasos/proximidade de horario.
 - Registro de quem alterou e quando alterou.
@@ -33,7 +33,6 @@ ATIVACAO/
 |   `-- app.js
 |-- scripts/
 |   |-- init_db.py
-|   |-- import_excel.py
 |   `-- start_server.ps1
 `-- requirements.txt
 ```
@@ -136,7 +135,6 @@ Troque `192.168.0.10` pelo IP real do servidor.
 - Filtram por data, vendedor, status e chassi.
 - Editam registros ainda nao finalizados.
 - Excluem registros nao finalizados.
-- Importam dados legados de uma planilha `.xlsx`.
 
 ### Mecanicos
 
@@ -225,49 +223,6 @@ DELETE /api/activations/{id}?changed_by=Joao
 
 ```http
 GET /api/activations/{id}/history
-```
-
-### Importar planilha antiga
-
-```http
-POST /api/import/excel
-Content-Type: multipart/form-data
-```
-
-Campos esperados:
-
-- `file`: arquivo `.xlsx`
-- `changed_by`: nome de quem esta fazendo a importacao
-
-Formatos legados suportados:
-
-- Planilhas mais novas com colunas separadas:
-  - `Modelo da moto`
-  - `Chassi`
-  - `Data de pedido`
-  - `Vendedor`
-  - `Data de ativacao`
-  - `Horario`
-  - `Nome do cliente`
-  - `CPF do cliente`
-- Planilhas mensais antigas com abas por mes, incluindo layouts em que:
-  - `Horario e data` vem em uma unica coluna
-  - `Cliente` e `CPF` vem juntos na mesma celula
-  - existem linhas separadoras contendo apenas a data do dia
-
-Observacoes da importacao legada:
-
-- O sistema percorre todas as abas do arquivo.
-- Nomes novos de vendedores responsaveis sao cadastrados automaticamente.
-- Linhas com horario ausente entram com `00:00` e observacao automatica informando que o horario original nao foi identificado.
-- Linhas sem chassi continuam sendo listadas como erro e nao sao importadas.
-
-## Importacao via script
-
-Tambem e possivel importar um arquivo pela linha de comando:
-
-```powershell
-python .\scripts\import_excel.py .\minha-planilha.xlsx --changed-by "Joao"
 ```
 
 ## Banco e auditoria

@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ativação de Motos</title>
-    <link rel="stylesheet" href="/styles.css?v=20260619-4">
+    <link rel="icon" type="image/png" href="/assets/favicon.png?v=20260622">
+    <link rel="stylesheet" href="/styles.css?v=20260622-4">
 </head>
 <body data-theme="light">
     <section id="loginScreen" class="login-shell">
@@ -119,8 +120,8 @@
                     </div>
                 </div>
 
-                <div class="seller-layout">
-                    <section class="card">
+                <div class="seller-workspace">
+                    <section class="card seller-form-card">
                         <div class="card-header">
                             <div>
                                 <h3 id="sellerFormTitle">Nova ativação</h3>
@@ -189,22 +190,49 @@
                         </form>
                     </section>
 
-                    <section class="card admin-only" data-role-visibility="ADMIN">
-                        <div class="card-header">
+                    <aside id="sellerDailyDashboard" class="card seller-daily-card" aria-labelledby="sellerDailyTitle">
+                        <div class="seller-daily-heading">
+                            <span class="seller-daily-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg>
+                            </span>
                             <div>
-                                <h3>Importar planilha antiga</h3>
-                                <p>Disponível apenas para ADMIN.</p>
+                                <p class="dialog-eyebrow">Resumo da agenda</p>
+                                <h3 id="sellerDailyTitle">Ativações do dia</h3>
                             </div>
                         </div>
-                        <form id="importForm" class="import-form">
-                            <input type="file" id="importFile" accept=".xlsx" required>
-                            <button type="submit" class="secondary-button">Importar Excel</button>
-                        </form>
-                        <p id="importResult" class="helper-text"></p>
-                    </section>
-                </div>
 
-                <section class="card">
+                        <p id="sellerDailyDate" class="seller-daily-date">Data solicitada: hoje</p>
+                        <div class="seller-capacity">
+                            <strong id="sellerDailyTotal">0</strong>
+                            <span>de 8 vagas preenchidas</span>
+                        </div>
+                        <div class="seller-capacity-track" role="progressbar" aria-label="Ocupação da agenda" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0">
+                            <span id="sellerDailyProgressBar"></span>
+                        </div>
+                        <p class="seller-available-copy"><strong id="sellerDailyAvailable">8</strong> vagas disponíveis</p>
+
+                        <div id="sellerNextDaySummary" class="seller-next-day is-hidden">
+                            <div class="seller-next-divider"><span>Agendamento automático</span></div>
+                            <p class="dialog-eyebrow">Próximo dia disponível</p>
+                            <strong id="sellerNextDate" class="seller-next-date">-</strong>
+                            <div class="seller-next-capacity">
+                                <span><strong id="sellerNextTotal">0</strong> de 8 preenchidas</span>
+                                <span><strong id="sellerNextAvailable">8</strong> livres</span>
+                            </div>
+                            <div class="seller-capacity-track seller-next-track" role="progressbar" aria-label="Ocupação do próximo dia disponível" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0">
+                                <span id="sellerNextProgressBar"></span>
+                            </div>
+                        </div>
+
+                        <div class="seller-daily-stats">
+                            <div><span>Pendentes</span><strong id="sellerDailyPending">0</strong></div>
+                            <div><span>Em andamento</span><strong id="sellerDailyInProgress">0</strong></div>
+                            <div><span>Finalizadas</span><strong id="sellerDailyFinished">0</strong></div>
+                            <div><span>Canceladas</span><strong id="sellerDailyCancelled">0</strong></div>
+                        </div>
+                    </aside>
+
+                    <section class="card seller-results-card">
                     <div class="card-header">
                         <div>
                             <h3>Ativações cadastradas</h3>
@@ -212,7 +240,7 @@
                         </div>
                     </div>
 
-                    <form id="sellerFilters" class="filter-grid filter-grid-wide">
+                    <form id="sellerFilters" class="filter-grid seller-filter-grid">
                         <label>
                             Data inicial
                             <input type="date" id="filterStartDate">
@@ -276,7 +304,8 @@
                             </tbody>
                         </table>
                     </div>
-                </section>
+                    </section>
+                </div>
             </section>
 
             <section id="officeSection" class="view-panel">
@@ -320,8 +349,8 @@
                     </div>
                 </div>
 
-                <div class="two-column-grid">
-                    <section class="card">
+                <div class="two-column-grid users-layout">
+                    <section class="card users-list-card">
                         <div class="card-header">
                             <div>
                                 <h3>Novo usuário</h3>
@@ -376,7 +405,7 @@
                                 <p>É possível editar perfil, ativação e senha.</p>
                             </div>
                         </div>
-                        <div class="table-wrapper">
+                        <div class="table-wrapper users-table-wrapper">
                             <table>
                                 <thead>
                                     <tr>
@@ -605,7 +634,26 @@
         </main>
     </div>
 
+    <dialog id="userActionsDialog" class="action-dialog" aria-labelledby="userActionsTitle">
+        <div class="action-dialog-header">
+            <div>
+                <p class="dialog-eyebrow">Gerenciar acesso</p>
+                <h2 id="userActionsTitle">Ações do usuário</h2>
+                <p id="userActionsSubtitle" class="helper-text"></p>
+            </div>
+            <button id="closeUserActionsDialog" type="button" class="icon-button" aria-label="Fechar ações">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m7 7 10 10M17 7 7 17"></path></svg>
+            </button>
+        </div>
+        <div class="action-dialog-list">
+            <button type="button" data-user-action="edit">Editar usuário</button>
+            <button type="button" data-user-action="toggle">Ativar ou desativar</button>
+            <button type="button" data-user-action="password">Alterar senha</button>
+            <button type="button" data-user-action="delete" class="danger-action">Excluir usuário</button>
+        </div>
+    </dialog>
+
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="/app.js?v=20260619-3" defer></script>
+    <script src="/app.js?v=20260622-3" defer></script>
 </body>
 </html>

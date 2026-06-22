@@ -16,6 +16,7 @@ const ICONS = Object.freeze({
     users: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 19c.6-3.3 2.4-5 5.5-5s4.9 1.7 5.5 5M16 5.5a3 3 0 0 1 0 5.8M16.5 14c2.4.3 3.7 2 4 5"></path></svg>`,
     history: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5M12 7v5l3 2"></path></svg>`,
     sliders: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h7M15 6h5M4 12h3M11 12h9M4 18h9M17 18h3"></path><circle cx="13" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="18" r="2"></circle></svg>`,
+    gear: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.6 3h4.8l.6 2.2 1.4.8 2.2-.6L21 9.6l-1.6 1.6v1.6l1.6 1.6-2.4 4.2-2.2-.6-1.4.8-.6 2.2H9.6L9 18.8 7.6 18l-2.2.6L3 14.4l1.6-1.6v-1.6L3 9.6l2.4-4.2 2.2.6L9 5.2 9.6 3Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
     clock: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
     checkCircle: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.7 2.7L16.5 9"></path></svg>`,
     xCircle: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path></svg>`,
@@ -118,9 +119,20 @@ const elements = {
     filterStatus: document.getElementById("filterStatus"),
     clearFiltersButton: document.getElementById("clearFiltersButton"),
     sellerTableBody: document.getElementById("sellerTableBody"),
-    importForm: document.getElementById("importForm"),
-    importFile: document.getElementById("importFile"),
-    importResult: document.getElementById("importResult"),
+    sellerDailyDashboard: document.getElementById("sellerDailyDashboard"),
+    sellerDailyDate: document.getElementById("sellerDailyDate"),
+    sellerDailyTotal: document.getElementById("sellerDailyTotal"),
+    sellerDailyAvailable: document.getElementById("sellerDailyAvailable"),
+    sellerDailyProgressBar: document.getElementById("sellerDailyProgressBar"),
+    sellerNextDaySummary: document.getElementById("sellerNextDaySummary"),
+    sellerNextDate: document.getElementById("sellerNextDate"),
+    sellerNextTotal: document.getElementById("sellerNextTotal"),
+    sellerNextAvailable: document.getElementById("sellerNextAvailable"),
+    sellerNextProgressBar: document.getElementById("sellerNextProgressBar"),
+    sellerDailyPending: document.getElementById("sellerDailyPending"),
+    sellerDailyInProgress: document.getElementById("sellerDailyInProgress"),
+    sellerDailyFinished: document.getElementById("sellerDailyFinished"),
+    sellerDailyCancelled: document.getElementById("sellerDailyCancelled"),
     mechanicResponsibleInput: document.getElementById("mechanicResponsibleInput"),
     mechanicResponsibleOptions: document.getElementById("mechanicResponsibleOptions"),
     mechanicDate: document.getElementById("mechanicDate"),
@@ -134,6 +146,10 @@ const elements = {
     userActive: document.getElementById("userActive"),
     userMustChangePassword: document.getElementById("userMustChangePassword"),
     usersTableBody: document.getElementById("usersTableBody"),
+    userActionsDialog: document.getElementById("userActionsDialog"),
+    userActionsTitle: document.getElementById("userActionsTitle"),
+    userActionsSubtitle: document.getElementById("userActionsSubtitle"),
+    closeUserActionsDialog: document.getElementById("closeUserActionsDialog"),
     peopleFilters: document.getElementById("peopleFilters"),
     peopleTypeFilter: document.getElementById("peopleTypeFilter"),
     peopleSearch: document.getElementById("peopleSearch"),
@@ -420,6 +436,7 @@ async function loadSchedulePreview({ showError = false } = {}) {
         elements.activationDate.value = elements.orderDate.value || todayString();
         elements.activationTime.value = "17:00";
         setSchedulePreviewMessage("O sistema calcula automaticamente a data de ativacao e fixa o horario em 17:00.");
+        renderSellerDailySummary([], elements.orderDate.value, [], elements.activationDate.value);
         return;
     }
 
@@ -435,11 +452,15 @@ async function loadSchedulePreview({ showError = false } = {}) {
         elements.activationDate.value = preview.activation_date;
         elements.activationTime.value = formatTime(preview.activation_time);
         setSchedulePreviewMessage(preview.scheduling_message);
+        const requestedDate = elements.orderDate.value || preview.activation_date;
+        await loadSellerDailySummary(requestedDate, preview.activation_date)
+            .catch(() => renderSellerDailySummary([], requestedDate, [], preview.activation_date));
     } catch (error) {
         if (requestId !== state.schedulePreviewRequestId) return;
         elements.activationDate.value = elements.orderDate.value || todayString();
         elements.activationTime.value = "17:00";
         setSchedulePreviewMessage("Nao foi possivel calcular a agenda automatica agora.");
+        renderSellerDailySummary([], elements.orderDate.value, [], elements.activationDate.value);
         if (showError) {
             showToast(error.message, true);
         }
@@ -491,6 +512,7 @@ function fillSellerForm(row) {
     elements.status.value = row.status;
     setChassisError("");
     setSchedulePreviewMessage("Ao alterar a data de pedido, o sistema recalcula automaticamente a data de ativacao para a proxima vaga.");
+    void loadSellerDailySummary(row.order_date || row.activation_date, row.activation_date);
     window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -539,6 +561,63 @@ async function loadSellerTable() {
     const query = sellerQueryString();
     const rows = await apiFetch(`/activations${query ? `?${query}` : ""}`);
     renderSellerTable(rows);
+}
+
+function renderSellerDailySummary(requestedRows, requestedDate, scheduledRows = requestedRows, scheduledDate = requestedDate) {
+    const counts = requestedRows.reduce((result, row) => {
+        result[row.status] = (result[row.status] || 0) + 1;
+        return result;
+    }, {});
+    const requestedTotal = requestedRows.filter((row) => row.status !== "Cancelado").length;
+    const available = Math.max(0, 8 - requestedTotal);
+    const progress = Math.min(100, (requestedTotal / 8) * 100);
+    const progressTrack = elements.sellerDailyProgressBar?.parentElement;
+    const hasNextDay = Boolean(scheduledDate && scheduledDate !== requestedDate);
+
+    elements.sellerDailyDate.textContent = `Data solicitada: ${formatDate(requestedDate)}`;
+    elements.sellerDailyTotal.textContent = String(requestedTotal);
+    elements.sellerDailyAvailable.textContent = String(available);
+    elements.sellerDailyPending.textContent = String(counts.Pendente || 0);
+    elements.sellerDailyInProgress.textContent = String(counts["Em andamento"] || 0);
+    elements.sellerDailyFinished.textContent = String(counts.Finalizado || 0);
+    elements.sellerDailyCancelled.textContent = String(counts.Cancelado || 0);
+    elements.sellerDailyProgressBar.style.width = `${progress}%`;
+    progressTrack?.setAttribute("aria-valuenow", String(requestedTotal));
+    elements.sellerDailyDashboard.classList.toggle("is-full", available === 0);
+    elements.sellerDailyDashboard.classList.toggle("has-next-day", hasNextDay);
+    elements.sellerNextDaySummary.classList.toggle("is-hidden", !hasNextDay);
+
+    if (hasNextDay) {
+        const nextTotal = scheduledRows.filter((row) => row.status !== "Cancelado").length;
+        const nextAvailable = Math.max(0, 8 - nextTotal);
+        const nextProgress = Math.min(100, (nextTotal / 8) * 100);
+        const nextProgressTrack = elements.sellerNextProgressBar?.parentElement;
+        elements.sellerNextDate.textContent = formatDate(scheduledDate);
+        elements.sellerNextTotal.textContent = String(nextTotal);
+        elements.sellerNextAvailable.textContent = String(nextAvailable);
+        elements.sellerNextProgressBar.style.width = `${nextProgress}%`;
+        nextProgressTrack?.setAttribute("aria-valuenow", String(nextTotal));
+    }
+}
+
+async function loadSellerDailySummary(
+    requestedDate = elements.orderDate.value || todayString(),
+    scheduledDate = elements.activationDate.value || requestedDate,
+) {
+    const normalizedRequestedDate = requestedDate || todayString();
+    const normalizedScheduledDate = scheduledDate || normalizedRequestedDate;
+    const dates = [...new Set([normalizedRequestedDate, normalizedScheduledDate])];
+    const responses = await Promise.all(dates.map(async (dateValue) => {
+        const query = new URLSearchParams({ activation_date: dateValue });
+        return [dateValue, await apiFetch(`/activations?${query.toString()}`)];
+    }));
+    const rowsByDate = Object.fromEntries(responses);
+    renderSellerDailySummary(
+        rowsByDate[normalizedRequestedDate] || [],
+        normalizedRequestedDate,
+        rowsByDate[normalizedScheduledDate] || [],
+        normalizedScheduledDate,
+    );
 }
 
 function renderCounters(counts) {
@@ -761,16 +840,32 @@ function renderUsersTable(rows) {
             <td>${row.profile}</td>
             <td>${row.active ? "Sim" : "Não"}</td>
             <td>${formatDateTime(row.last_login)}</td>
-            <td>
-                <div class="row-actions">
-                    <button type="button" data-user-action="edit" data-id="${row.id}">Editar</button>
-                    <button type="button" data-user-action="toggle" data-id="${row.id}">${row.active ? "Desativar" : "Ativar"}</button>
-                    <button type="button" data-user-action="password" data-id="${row.id}">Senha</button>
-                    <button type="button" data-user-action="delete" data-id="${row.id}">Excluir</button>
-                </div>
+            <td class="user-actions-cell">
+                <button type="button" class="user-menu-trigger" data-user-menu data-id="${row.id}" aria-label="Gerenciar ações do usuário" title="Gerenciar usuário">
+                    ${iconSvg("gear")}
+                </button>
             </td>
         </tr>
     `).join("");
+}
+
+function closeUserActionsMenu() {
+    if (elements.userActionsDialog?.open) {
+        elements.userActionsDialog.close();
+    }
+}
+
+function openUserActionsMenu(user) {
+    if (!elements.userActionsDialog) return;
+    elements.userActionsTitle.textContent = user.name;
+    elements.userActionsSubtitle.textContent = `${user.username} · ${user.profile}`;
+    elements.userActionsDialog.querySelectorAll("button[data-user-action]").forEach((button) => {
+        button.dataset.id = String(user.id);
+        if (button.dataset.userAction === "toggle") {
+            button.textContent = user.active ? "Desativar usuário" : "Ativar usuário";
+        }
+    });
+    elements.userActionsDialog.showModal();
 }
 
 async function loadUsers() {
@@ -878,7 +973,7 @@ function updateAutoRefreshTimer() {
                 await loadDashboard();
             }
             if (state.currentRoute === "/vendedor") {
-                await loadSellerTable();
+                await Promise.all([loadSellerTable(), loadSellerDailySummary()]);
             }
             if (state.currentRoute === "/oficina") {
                 await loadMechanicList();
@@ -898,6 +993,8 @@ async function loadRouteData(route) {
         await Promise.all([loadResponsibleLists(), loadSellerTable()]);
         if (!elements.activationId.value) {
             await loadSchedulePreview();
+        } else {
+            await loadSellerDailySummary();
         }
         return;
     }
@@ -1063,30 +1160,10 @@ async function handleSellerTableClick(event) {
         }
         await Promise.all([
             loadSellerTable(),
+            loadSellerDailySummary(),
             state.user.profile === "ADMIN" ? loadDashboard() : Promise.resolve(),
             loadMechanicList().catch(() => null),
         ]);
-    } catch (error) {
-        showToast(error.message, true);
-    }
-}
-
-async function submitImportForm(event) {
-    event.preventDefault();
-    try {
-        const file = elements.importFile.files[0];
-        if (!file) {
-            throw new Error("Selecione um arquivo .xlsx para importar.");
-        }
-        const formData = new FormData();
-        formData.append("file", file);
-        const result = await apiFetch("/import/excel", {
-            method: "POST",
-            body: formData,
-        });
-        elements.importResult.textContent = `Importadas ${result.imported} linhas. Ignoradas ${result.ignored_blank_rows}. ${result.errors.length ? `Erros: ${result.errors.join(" | ")}` : ""}`;
-        await Promise.all([loadResponsibleLists(), loadSellerTable(), loadDashboard()]);
-        showToast("Importação concluída.");
     } catch (error) {
         showToast(error.message, true);
     }
@@ -1152,10 +1229,18 @@ async function submitUserForm(event) {
 }
 
 async function handleUsersTableClick(event) {
+    const menuButton = event.target.closest("button[data-user-menu]");
+    if (menuButton) {
+        const user = state.users.find((item) => item.id === Number(menuButton.dataset.id));
+        if (user) openUserActionsMenu(user);
+        return;
+    }
+
     const button = event.target.closest("button[data-user-action]");
     if (!button) return;
     const user = state.users.find((item) => item.id === Number(button.dataset.id));
     if (!user) return;
+    closeUserActionsMenu();
 
     try {
         if (button.dataset.userAction === "edit") {
@@ -1348,7 +1433,6 @@ function bindEvents() {
         }
     });
     elements.sellerTableBody.addEventListener("click", handleSellerTableClick);
-    elements.importForm?.addEventListener("submit", submitImportForm);
     elements.mechanicDate.addEventListener("change", async () => {
         try {
             await loadMechanicList();
@@ -1359,6 +1443,11 @@ function bindEvents() {
     elements.mechanicList.addEventListener("click", handleMechanicAction);
     elements.userForm.addEventListener("submit", submitUserForm);
     elements.usersTableBody.addEventListener("click", handleUsersTableClick);
+    elements.userActionsDialog?.addEventListener("click", handleUsersTableClick);
+    elements.closeUserActionsDialog?.addEventListener("click", closeUserActionsMenu);
+    elements.userActionsDialog?.addEventListener("click", (event) => {
+        if (event.target === elements.userActionsDialog) closeUserActionsMenu();
+    });
     elements.peopleFilters.addEventListener("submit", async (event) => {
         event.preventDefault();
         try {

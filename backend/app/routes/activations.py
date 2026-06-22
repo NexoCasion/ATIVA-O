@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, status as http_status
+from fastapi import APIRouter, Depends, Query, Response, status as http_status
 from fastapi.responses import PlainTextResponse
 
 from ..auth import CurrentUser, get_current_user, require_roles
@@ -12,7 +12,6 @@ from ..schemas import (
     ActivationUpdate,
     AuditLogResponse,
     DashboardResponse,
-    ImportResult,
     SchedulePreviewResponse,
     StatusUpdate,
 )
@@ -29,8 +28,6 @@ from ..services.activation_service import (
     update_activation,
     update_status,
 )
-from ..services.import_service import import_upload_file
-
 router = APIRouter()
 
 
@@ -136,14 +133,6 @@ def dashboard_endpoint(
     current_user: CurrentUser = Depends(require_roles("ADMIN")),
 ) -> DashboardResponse:
     return dashboard_for_date(target_date or date.today())
-
-
-@router.post("/import/excel", response_model=ImportResult)
-async def import_excel_endpoint(
-    file: UploadFile = File(...),
-    current_user: CurrentUser = Depends(require_roles("ADMIN")),
-) -> ImportResult:
-    return await import_upload_file(file, current_user)
 
 
 @router.get("/export", response_class=PlainTextResponse)

@@ -278,12 +278,6 @@ class DashboardResponse(BaseModel):
     activations: list[ActivationResponse]
 
 
-class ImportResult(BaseModel):
-    imported: int
-    ignored_blank_rows: int
-    errors: list[str]
-
-
 class BackupResponse(BaseModel):
     backup_path: str
 
