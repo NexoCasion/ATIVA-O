@@ -681,29 +681,9 @@ body[data-theme="dark"] .theme-icon-moon {
 }
 
 .seller-next-day {
-    margin: 22px 0;
-    padding: 0 0 20px;
-    border-bottom: 1px solid var(--border);
-}
-
-.seller-next-divider {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 18px;
-    color: var(--muted);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.seller-next-divider::before,
-.seller-next-divider::after {
-    content: "";
-    height: 1px;
-    flex: 1;
-    background: var(--border);
+    margin: 22px 0 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
 }
 
 .seller-next-date {
@@ -770,7 +750,8 @@ body[data-theme="dark"] .theme-icon-moon {
 }
 
 .seller-filter-grid .filter-actions {
-    grid-column: 1 / -1;
+    align-self: end;
+    min-height: 48px;
     padding-top: 2px;
 }
 

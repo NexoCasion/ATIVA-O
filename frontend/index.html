@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ativação de Motos</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png?v=20260622">
-    <link rel="stylesheet" href="/styles.css?v=20260622-4">
+    <link rel="stylesheet" href="/styles.css?v=20260622-5">
 </head>
 <body data-theme="light">
     <section id="loginScreen" class="login-shell">
@@ -211,8 +211,14 @@
                         </div>
                         <p class="seller-available-copy"><strong id="sellerDailyAvailable">8</strong> vagas disponíveis</p>
 
+                        <div class="seller-daily-stats">
+                            <div><span>Pendentes</span><strong id="sellerDailyPending">0</strong></div>
+                            <div><span>Em andamento</span><strong id="sellerDailyInProgress">0</strong></div>
+                            <div><span>Finalizadas</span><strong id="sellerDailyFinished">0</strong></div>
+                            <div><span>Canceladas</span><strong id="sellerDailyCancelled">0</strong></div>
+                        </div>
+
                         <div id="sellerNextDaySummary" class="seller-next-day is-hidden">
-                            <div class="seller-next-divider"><span>Agendamento automático</span></div>
                             <p class="dialog-eyebrow">Próximo dia disponível</p>
                             <strong id="sellerNextDate" class="seller-next-date">-</strong>
                             <div class="seller-next-capacity">
@@ -222,13 +228,6 @@
                             <div class="seller-capacity-track seller-next-track" role="progressbar" aria-label="Ocupação do próximo dia disponível" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0">
                                 <span id="sellerNextProgressBar"></span>
                             </div>
-                        </div>
-
-                        <div class="seller-daily-stats">
-                            <div><span>Pendentes</span><strong id="sellerDailyPending">0</strong></div>
-                            <div><span>Em andamento</span><strong id="sellerDailyInProgress">0</strong></div>
-                            <div><span>Finalizadas</span><strong id="sellerDailyFinished">0</strong></div>
-                            <div><span>Canceladas</span><strong id="sellerDailyCancelled">0</strong></div>
                         </div>
                     </aside>
 
