@@ -200,6 +200,21 @@ function todayString() {
     return new Date().toISOString().slice(0, 10);
 }
 
+function relativeLocalDateString(dayOffset) {
+    const date = new Date();
+    date.setDate(date.getDate() + dayOffset);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function setDefaultSellerDateFilters() {
+    if (!elements.filterStartDate.value) {
+        elements.filterStartDate.value = relativeLocalDateString(-3);
+    }
+}
+
 function formatDate(value) {
     if (!value) return "-";
     return new Intl.DateTimeFormat("pt-BR").format(new Date(`${value}T00:00:00`));
@@ -1504,6 +1519,7 @@ async function bootstrap() {
     applyTheme(getStoredTheme());
     bindEvents();
     resetSellerForm();
+    setDefaultSellerDateFilters();
     elements.dashboardDate.value = todayString();
     elements.mechanicDate.value = todayString();
     const restored = await restoreSession();
