@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ativação de Motos</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png?v=20260622">
-    <link rel="stylesheet" href="/styles.css?v=20260622-5">
+    <link rel="stylesheet" href="/styles.css?v=20260623-1">
 </head>
 <body data-theme="light">
     <section id="loginScreen" class="login-shell">
@@ -526,17 +526,19 @@
                             <thead>
                                 <tr>
                                     <th>Data/Hora</th>
+                                    <th>Ativa&ccedil;&atilde;o</th>
                                     <th>Ação</th>
                                     <th>Login</th>
                                     <th>Vendedor</th>
                                     <th>Mecânico</th>
                                     <th>Status</th>
                                     <th>Detalhes</th>
+                                    <th>Ver</th>
                                 </tr>
                             </thead>
                             <tbody id="historyTableBody">
                                 <tr>
-                                    <td colspan="7" class="empty-row">Carregando...</td>
+                                    <td colspan="9" class="empty-row">Carregando...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -652,7 +654,31 @@
         </div>
     </dialog>
 
+    <dialog id="historyDetailsDialog" class="action-dialog history-details-dialog" aria-labelledby="historyDetailsTitle">
+        <div class="action-dialog-header">
+            <div>
+                <p class="dialog-eyebrow">Detalhes do hist&oacute;rico</p>
+                <h2 id="historyDetailsTitle">Evento do hist&oacute;rico</h2>
+                <p id="historyDetailsSubtitle" class="helper-text"></p>
+            </div>
+            <button id="closeHistoryDetailsDialog" type="button" class="icon-button" aria-label="Fechar detalhes">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m7 7 10 10M17 7 7 17"></path></svg>
+            </button>
+        </div>
+        <div class="history-details-body">
+            <div id="historyDetailsMeta" class="history-detail-grid"></div>
+            <section class="history-detail-card">
+                <h3>Registro relacionado</h3>
+                <div id="historyDetailsActivation" class="history-activation-summary"></div>
+            </section>
+            <section class="history-detail-card">
+                <h3>O que foi alterado</h3>
+                <div id="historyDetailsChanges" class="history-change-list"></div>
+            </section>
+        </div>
+    </dialog>
+
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="/app.js?v=20260622-5" defer></script>
+    <script src="/app.js?v=20260623-1" defer></script>
 </body>
 </html>

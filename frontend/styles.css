@@ -1264,6 +1264,109 @@ td .row-actions button:disabled {
     color: var(--danger);
 }
 
+.history-details-dialog {
+    width: min(920px, calc(100% - 32px));
+}
+
+.history-details-body {
+    display: grid;
+    gap: 16px;
+    padding: 20px 22px 22px;
+    max-height: min(72vh, 680px);
+    overflow: auto;
+}
+
+.history-detail-grid,
+.history-activation-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.history-detail-card {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-soft);
+}
+
+.history-detail-card h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1rem;
+}
+
+.history-detail-item,
+.history-change-row {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.history-detail-item {
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+}
+
+.history-detail-label,
+.history-change-label {
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.history-detail-value {
+    color: var(--text);
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.history-change-list {
+    display: grid;
+    gap: 10px;
+}
+
+.history-change-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.8fr) repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px;
+    align-items: start;
+}
+
+.history-change-value {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.history-change-value strong {
+    color: var(--text);
+    font-weight: 800;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.history-action-cell {
+    width: 64px;
+    text-align: center;
+}
+
+.history-eye-button svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 @keyframes dialog-enter {
     from {
         opacity: 0;
@@ -1585,6 +1688,15 @@ td .row-actions button:disabled {
         width: 100%;
     }
 
+    .history-detail-grid,
+    .history-activation-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .history-change-row {
+        grid-template-columns: 1fr;
+    }
+
     .session-panel {
         justify-content: flex-start;
     }
@@ -1649,6 +1761,15 @@ td .row-actions button:disabled {
 
     .brand-logo-login {
         height: 52px;
+    }
+
+    .history-details-body {
+        padding: 16px;
+    }
+
+    .history-detail-grid,
+    .history-activation-summary {
+        grid-template-columns: 1fr;
     }
 
     .mechanic-grid {

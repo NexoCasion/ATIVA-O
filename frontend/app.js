@@ -17,6 +17,7 @@ const ICONS = Object.freeze({
     history: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5M12 7v5l3 2"></path></svg>`,
     sliders: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 6h7M15 6h5M4 12h3M11 12h9M4 18h9M17 18h3"></path><circle cx="13" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="15" cy="18" r="2"></circle></svg>`,
     gear: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.6 3h4.8l.6 2.2 1.4.8 2.2-.6L21 9.6l-1.6 1.6v1.6l1.6 1.6-2.4 4.2-2.2-.6-1.4.8-.6 2.2H9.6L9 18.8 7.6 18l-2.2.6L3 14.4l1.6-1.6v-1.6L3 9.6l2.4-4.2 2.2.6L9 5.2 9.6 3Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+    eye: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
     clock: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
     checkCircle: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.7 2.7L16.5 9"></path></svg>`,
     xCircle: `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path></svg>`,
@@ -58,6 +59,75 @@ const MECHANIC_SUMMARY_META = [
     { key: "finished", label: "Finalizadas", description: "Concluídas no dia", icon: "checkCircle", className: "finalizadas" },
     { key: "cancelled", label: "Canceladas", description: "Registros encerrados", icon: "xCircle", className: "canceladas" },
 ];
+
+const HISTORY_ACTION_LABELS = {
+    activation_created: "Ativa\u00e7\u00e3o criada",
+    activation_updated: "Ativa\u00e7\u00e3o editada",
+    activation_cancelled: "Ativa\u00e7\u00e3o cancelada",
+    activation_deleted: "Ativa\u00e7\u00e3o exclu\u00edda",
+    status_changed: "Status alterado",
+    service_finished: "Servi\u00e7o finalizado",
+    user_created: "Usu\u00e1rio criado",
+    user_updated: "Usu\u00e1rio editado",
+    user_deleted: "Usu\u00e1rio exclu\u00eddo",
+    password_changed: "Senha alterada",
+    person_created: "Respons\u00e1vel criado",
+    person_updated: "Respons\u00e1vel editado",
+    settings_updated: "Configura\u00e7\u00f5es alteradas",
+    login_success: "Login realizado",
+    logout: "Logout realizado",
+};
+
+const HISTORY_FIELD_ORDER = [
+    "id",
+    "motorcycle_model",
+    "chassis",
+    "order_date",
+    "seller_responsible_name",
+    "created_by",
+    "mechanic_responsible_name",
+    "activation_date",
+    "activation_time",
+    "client_name",
+    "client_cpf",
+    "status",
+    "notes",
+    "mechanic_notes",
+    "created_at",
+    "updated_at",
+    "last_changed_by",
+    "seller_responsible_id",
+    "mechanic_responsible_id",
+];
+
+const HISTORY_FIELD_LABELS = {
+    id: "ID",
+    motorcycle_model: "Modelo da moto",
+    chassis: "Chassi",
+    order_date: "Data de pedido",
+    seller_responsible_id: "ID vendedor",
+    seller_responsible_name: "Vendedor respons\u00e1vel",
+    mechanic_responsible_id: "ID mec\u00e2nico",
+    mechanic_responsible_name: "Mec\u00e2nico respons\u00e1vel",
+    activation_date: "Data de ativa\u00e7\u00e3o",
+    activation_time: "Hor\u00e1rio",
+    client_name: "Cliente",
+    client_cpf: "CPF do cliente",
+    notes: "Observa\u00e7\u00f5es do vendedor",
+    mechanic_notes: "Observa\u00e7\u00f5es do mec\u00e2nico",
+    status: "Status",
+    created_at: "Criado em",
+    updated_at: "\u00daltima altera\u00e7\u00e3o",
+    created_by: "Usu\u00e1rio do cadastro",
+    last_changed_by: "\u00daltimo usu\u00e1rio",
+    scheduling_message: "Mensagem de agendamento",
+    name: "Nome",
+    username: "Login",
+    profile: "Perfil",
+    active: "Ativo",
+    must_change_password: "Exige troca de senha",
+    type: "Tipo",
+};
 
 const SECTION_BY_ROUTE = {
     "/admin": "dashboardSection",
@@ -163,6 +233,13 @@ const elements = {
     historyMechanicName: document.getElementById("historyMechanicName"),
     historyContext: document.getElementById("historyContext"),
     historyTableBody: document.getElementById("historyTableBody"),
+    historyDetailsDialog: document.getElementById("historyDetailsDialog"),
+    historyDetailsTitle: document.getElementById("historyDetailsTitle"),
+    historyDetailsSubtitle: document.getElementById("historyDetailsSubtitle"),
+    historyDetailsMeta: document.getElementById("historyDetailsMeta"),
+    historyDetailsActivation: document.getElementById("historyDetailsActivation"),
+    historyDetailsChanges: document.getElementById("historyDetailsChanges"),
+    closeHistoryDetailsDialog: document.getElementById("closeHistoryDetailsDialog"),
     exportForm: document.getElementById("exportForm"),
     exportStartDate: document.getElementById("exportStartDate"),
     exportEndDate: document.getElementById("exportEndDate"),
@@ -230,6 +307,92 @@ function formatDateTime(value) {
 
 function formatTime(value) {
     return value ? value.slice(0, 5) : "-";
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function humanizeHistoryKey(key) {
+    return HISTORY_FIELD_LABELS[key] || String(key || "")
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function historyActionLabel(action) {
+    return HISTORY_ACTION_LABELS[action] || humanizeHistoryKey(action);
+}
+
+function sortHistoryKeys(keys) {
+    return [...keys].sort((first, second) => {
+        const firstIndex = HISTORY_FIELD_ORDER.indexOf(first);
+        const secondIndex = HISTORY_FIELD_ORDER.indexOf(second);
+        const normalizedFirst = firstIndex === -1 ? 999 : firstIndex;
+        const normalizedSecond = secondIndex === -1 ? 999 : secondIndex;
+        if (normalizedFirst !== normalizedSecond) return normalizedFirst - normalizedSecond;
+        return first.localeCompare(second);
+    });
+}
+
+function historyValuesMatch(first, second) {
+    return JSON.stringify(first ?? null) === JSON.stringify(second ?? null);
+}
+
+function historyValueIsEmpty(value) {
+    return value === null || value === undefined || value === "";
+}
+
+function formatHistoryValue(key, value) {
+    if (historyValueIsEmpty(value)) return "-";
+    if (typeof value === "boolean") return value ? "Sim" : "N\u00e3o";
+    if (key === "activation_time") return formatTime(String(value));
+    if (key === "activation_date" || key === "order_date") return formatDate(String(value));
+    if (key.endsWith("_at") || key === "performed_at") return formatDateTime(String(value));
+    if (typeof value === "object") return JSON.stringify(value, null, 2);
+    return String(value);
+}
+
+function historySnapshot(row) {
+    return row.new_value || row.old_value || {};
+}
+
+function historyActivationLabel(row) {
+    const snapshot = historySnapshot(row);
+    const id = row.entity_id || snapshot.id;
+    const entityLabel = row.entity_type === "activation"
+        ? "Ativa\u00e7\u00e3o"
+        : humanizeHistoryKey(row.entity_type || "sistema");
+    const title = id ? `${entityLabel} #${id}` : entityLabel;
+    const extraValues = row.entity_type === "activation"
+        ? [snapshot.motorcycle_model, snapshot.chassis, snapshot.client_name]
+        : [snapshot.name, snapshot.username, snapshot.type || snapshot.profile];
+    const extra = extraValues
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(" | ");
+    return extra ? `${title} - ${extra}` : title;
+}
+
+function changedHistoryKeys(row) {
+    const oldValue = row.old_value || {};
+    const newValue = row.new_value || {};
+    const keys = sortHistoryKeys([...new Set([...Object.keys(oldValue), ...Object.keys(newValue)])]);
+
+    if (row.old_value && row.new_value) {
+        return keys.filter((key) => !historyValuesMatch(oldValue[key], newValue[key]));
+    }
+    if (row.new_value) {
+        return keys.filter((key) => !historyValueIsEmpty(newValue[key]));
+    }
+    if (row.old_value) {
+        return keys.filter((key) => !historyValueIsEmpty(oldValue[key]));
+    }
+    return [];
 }
 
 function statusClassName(value) {
@@ -921,15 +1084,102 @@ async function loadAdminPeople() {
 }
 
 function summarizeHistoryRow(row) {
-    const changes = [];
-    if (row.old_value && row.new_value) {
-        Object.keys(row.new_value).slice(0, 4).forEach((key) => {
-            if (JSON.stringify(row.old_value[key]) !== JSON.stringify(row.new_value[key])) {
-                changes.push(`${key}: ${row.old_value[key] ?? "-"} -> ${row.new_value[key] ?? "-"}`);
-            }
-        });
+    const changes = changedHistoryKeys(row);
+    if (changes.length) {
+        const changedFields = changes.slice(0, 3).map(humanizeHistoryKey).join(", ");
+        const suffix = changes.length > 3 ? ` +${changes.length - 3}` : "";
+        return `${historyActionLabel(row.action)}: ${changedFields}${suffix}`;
     }
-    return row.details || changes.join(" | ") || "-";
+    return row.details || historyActionLabel(row.action) || "-";
+}
+
+function historyDetailItem(label, value) {
+    return `
+        <div class="history-detail-item">
+            <span class="history-detail-label">${escapeHtml(label)}</span>
+            <strong class="history-detail-value">${escapeHtml(value)}</strong>
+        </div>
+    `;
+}
+
+function renderHistoryActivationSummary(row) {
+    const snapshot = historySnapshot(row);
+    const items = row.entity_type === "activation"
+        ? [
+            ["ID", row.entity_id || snapshot.id || "-"],
+            ["Modelo", snapshot.motorcycle_model || "-"],
+            ["Chassi", snapshot.chassis || "-"],
+            ["Cliente", snapshot.client_name || "-"],
+            ["Vendedor respons\u00e1vel", snapshot.seller_responsible_name || row.seller_person_name || "-"],
+            ["Usu\u00e1rio do cadastro", snapshot.created_by || "-"],
+            ["Mec\u00e2nico respons\u00e1vel", snapshot.mechanic_responsible_name || row.mechanic_person_name || "-"],
+            ["Entrega", `${formatHistoryValue("activation_date", snapshot.activation_date)} \u00e0s ${formatHistoryValue("activation_time", snapshot.activation_time)}`],
+        ]
+        : [
+            ["ID", row.entity_id || snapshot.id || "-"],
+            ["Tipo", humanizeHistoryKey(row.entity_type || "sistema")],
+            ["Nome", snapshot.name || "-"],
+            ["Login", snapshot.username || "-"],
+            ["Perfil/Tipo", snapshot.profile || snapshot.type || "-"],
+            ["Ativo", "active" in snapshot ? formatHistoryValue("active", snapshot.active) : "-"],
+            ["Criado em", formatHistoryValue("created_at", snapshot.created_at)],
+            ["Alterado em", formatHistoryValue("updated_at", snapshot.updated_at)],
+        ];
+    return items.map(([label, value]) => historyDetailItem(label, value)).join("");
+}
+
+function renderHistoryChangeList(row) {
+    const oldValue = row.old_value || {};
+    const newValue = row.new_value || {};
+    const changes = changedHistoryKeys(row);
+
+    if (!changes.length) {
+        return `<p class="helper-text">${escapeHtml(row.details || "Nenhuma diferen\u00e7a de valor foi registrada para este evento.")}</p>`;
+    }
+
+    return changes.map((key) => `
+        <div class="history-change-row">
+            <div>
+                <span class="history-change-label">Campo</span>
+                <strong>${escapeHtml(humanizeHistoryKey(key))}</strong>
+            </div>
+            <div class="history-change-value">
+                <span class="history-change-label">Antes</span>
+                <strong>${escapeHtml(formatHistoryValue(key, oldValue[key]))}</strong>
+            </div>
+            <div class="history-change-value">
+                <span class="history-change-label">Depois</span>
+                <strong>${escapeHtml(formatHistoryValue(key, newValue[key]))}</strong>
+            </div>
+        </div>
+    `).join("");
+}
+
+function openHistoryDetails(row) {
+    elements.historyDetailsTitle.textContent = historyActionLabel(row.action);
+    elements.historyDetailsSubtitle.textContent = `${historyActivationLabel(row)} - evento #${row.id}`;
+    elements.historyDetailsMeta.innerHTML = [
+        ["Data/Hora", formatDateTime(row.performed_at)],
+        ["Login respons\u00e1vel", row.performed_by_login || "-"],
+        ["Status da moto", row.motorcycle_status || "-"],
+        ["Tipo de registro", humanizeHistoryKey(row.entity_type || "sistema")],
+    ].map(([label, value]) => historyDetailItem(label, value)).join("");
+    elements.historyDetailsActivation.innerHTML = renderHistoryActivationSummary(row);
+    elements.historyDetailsChanges.innerHTML = renderHistoryChangeList(row);
+    elements.historyDetailsDialog?.showModal();
+}
+
+function closeHistoryDetails() {
+    if (elements.historyDetailsDialog?.open) {
+        elements.historyDetailsDialog.close();
+    }
+}
+
+function handleHistoryTableClick(event) {
+    const button = event.target.closest("button[data-history-view]");
+    if (!button) return;
+    const row = state.historyRows.find((item) => item.id === Number(button.dataset.historyView));
+    if (row) openHistoryDetails(row);
 }
 
 function renderHistoryTable(rows) {
@@ -937,14 +1187,20 @@ function renderHistoryTable(rows) {
     elements.historyTableBody.innerHTML = rows.length ? rows.map((row) => `
         <tr>
             <td>${formatDateTime(row.performed_at)}</td>
-            <td>${row.action}</td>
-            <td>${row.performed_by_login}</td>
-            <td>${row.seller_person_name || "-"}</td>
-            <td>${row.mechanic_person_name || "-"}</td>
-            <td>${row.motorcycle_status || "-"}</td>
-            <td>${summarizeHistoryRow(row)}</td>
+            <td>${escapeHtml(historyActivationLabel(row))}</td>
+            <td>${escapeHtml(historyActionLabel(row.action))}</td>
+            <td>${escapeHtml(row.performed_by_login || "-")}</td>
+            <td>${escapeHtml(row.seller_person_name || "-")}</td>
+            <td>${escapeHtml(row.mechanic_person_name || "-")}</td>
+            <td>${escapeHtml(row.motorcycle_status || "-")}</td>
+            <td>${escapeHtml(summarizeHistoryRow(row))}</td>
+            <td class="history-action-cell">
+                <button type="button" class="icon-button history-eye-button" data-history-view="${row.id}" aria-label="Ver detalhes do evento #${row.id}">
+                    ${iconSvg("eye")}
+                </button>
+            </td>
         </tr>
-    `).join("") : '<tr><td colspan="7" class="empty-row">Nenhum evento encontrado.</td></tr>';
+    `).join("") : '<tr><td colspan="9" class="empty-row">Nenhum evento encontrado.</td></tr>';
 }
 
 async function loadHistory() {
@@ -1480,6 +1736,11 @@ function bindEvents() {
         } catch (error) {
             showToast(error.message, true);
         }
+    });
+    elements.historyTableBody.addEventListener("click", handleHistoryTableClick);
+    elements.closeHistoryDetailsDialog?.addEventListener("click", closeHistoryDetails);
+    elements.historyDetailsDialog?.addEventListener("click", (event) => {
+        if (event.target === elements.historyDetailsDialog) closeHistoryDetails();
     });
     elements.exportForm.addEventListener("submit", submitExportForm);
     elements.backupButton.addEventListener("click", handleBackup);
