@@ -100,7 +100,7 @@ def login(payload: LoginRequest) -> LoginResponse:
 def get_user_by_session_token(token: str) -> sqlite3.Row | None:
     token_hash = hash_session_token(token)
     now = iso_now()
-    with db_cursor(commit=True) as cursor:
+    with db_cursor() as cursor:
         row = cursor.execute(
             """
             SELECT users.*
@@ -115,10 +115,6 @@ def get_user_by_session_token(token: str) -> sqlite3.Row | None:
         if row is None or not bool(row["active"]):
             return None
 
-        cursor.execute(
-            "UPDATE user_sessions SET last_used_at = ? WHERE token_hash = ?",
-            (now, token_hash),
-        )
         return row
 
 

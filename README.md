@@ -55,6 +55,17 @@ Set-ExecutionPolicy -Scope Process Bypass
 ```
 
 O script cria um ambiente virtual, instala dependencias, inicializa o banco e sobe o servidor na porta `1234`.
+Depois da primeira instalacao, ele pula o `pip install` automaticamente para evitar excesso de arquivos temporarios no servidor.
+
+### Limpeza rapida se o servidor travar
+
+Com o servidor parado, execute:
+
+```powershell
+.\scripts\cleanup_runtime.ps1
+```
+
+Esse script remove apenas arquivos temporarios do proprio sistema, como `*.db-wal`, `*.db-shm`, `*.db-journal` e logs locais. Ele nao apaga `data\activations.db`.
 
 ### Opcao 2: instalacao manual
 

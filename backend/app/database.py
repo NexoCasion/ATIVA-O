@@ -18,7 +18,12 @@ def get_connection() -> sqlite3.Connection:
     connection = sqlite3.connect(DATABASE_PATH, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON;")
-    connection.execute("PRAGMA journal_mode = WAL;")
+    # O modo WAL cria arquivos auxiliares .db-wal/.db-shm enquanto o sistema roda.
+    # Para esta instalação local em Windows, DELETE é mais previsível e limpa o
+    # journal ao final de cada transação, evitando acúmulo de "temporários".
+    connection.execute("PRAGMA journal_mode = DELETE;")
+    connection.execute("PRAGMA temp_store = MEMORY;")
+    connection.execute("PRAGMA busy_timeout = 5000;")
     return connection
 
 
