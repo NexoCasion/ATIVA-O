@@ -1,6 +1,7 @@
 const API_BASE = "/api";
 const STATUS_ORDER = ["Pendente", "Em andamento", "Finalizado", "Cancelado"];
 const DEFAULT_AUTO_REFRESH_SECONDS = 15;
+const MECHANIC_NOTES_PAUSE_MS = 3 * 60 * 1000;
 const CHASSIS_PATTERN = /^[A-Z]{2}\d{6}$/;
 const THEME_STORAGE_KEY = "uiTheme";
 const THEME_LABELS = {
@@ -67,6 +68,7 @@ const HISTORY_ACTION_LABELS = {
     activation_deleted: "Ativa\u00e7\u00e3o exclu\u00edda",
     status_changed: "Status alterado",
     service_finished: "Servi\u00e7o finalizado",
+    mechanic_notes_updated: "Observa\u00e7\u00e3o da oficina atualizada",
     user_created: "Usu\u00e1rio criado",
     user_updated: "Usu\u00e1rio editado",
     user_deleted: "Usu\u00e1rio exclu\u00eddo",
@@ -270,6 +272,8 @@ const state = {
     focusedActivationHistoryId: null,
     settings: null,
     autoRefreshId: null,
+    mechanicNotesPauseUntil: 0,
+    mechanicNotesCountdownId: null,
     schedulePreviewRequestId: 0,
 };
 
@@ -957,14 +961,27 @@ function renderMechanicCard(row) {
             </div>
             <label class="mechanic-notes-field">
                 Observações do mecânico
-                <textarea rows="3" data-notes-id="${row.id}" placeholder="Descreva o andamento ou a finalização do serviço">${row.mechanic_notes || ""}</textarea>
+                <textarea rows="3" data-notes-id="${row.id}" placeholder="Descreva o andamento ou a finalização do serviço">${escapeHtml(row.mechanic_notes || "")}</textarea>
             </label>
+            <div class="mechanic-notes-actions">
+                <span class="mechanic-notes-state" data-notes-state-id="${row.id}" role="timer"></span>
+                <button
+                    type="button"
+                    class="mechanic-action-button mechanic-action-notes"
+                    data-notes-save="true"
+                    data-id="${row.id}"
+                >
+                    Salvar observação
+                </button>
+            </div>
             ${footerMarkup}
         </article>
     `;
 }
 
 function renderMechanicList(rows) {
+    stopMechanicNotesCountdown();
+    state.mechanicNotesPauseUntil = 0;
     state.mechanicRows = rows;
     renderMechanicSummary(rows);
 
@@ -1247,6 +1264,7 @@ function updateAutoRefreshTimer() {
                 await Promise.all([loadSellerTable(), loadSellerDailySummary()]);
             }
             if (state.currentRoute === "/oficina") {
+                if (mechanicNotesAreBeingEdited()) return;
                 await loadMechanicList();
             }
         } catch {
@@ -1441,15 +1459,36 @@ async function handleSellerTableClick(event) {
 }
 
 async function handleMechanicAction(event) {
-    const button = event.target.closest("button[data-status-action], button[data-status-save]");
+    const button = event.target.closest("button[data-status-action], button[data-status-save], button[data-notes-save]");
     if (!button) return;
     try {
+        const isNotesSave = button.dataset.notesSave === "true";
         const mechanicName = elements.mechanicResponsibleInput.value.trim();
         if (!mechanicName) {
-            throw new Error("Informe o mecânico responsável antes de alterar o status.");
+            throw new Error(isNotesSave
+                ? "Informe o mecânico responsável antes de salvar a observação."
+                : "Informe o mecânico responsável antes de alterar o status.");
         }
         const id = Number(button.dataset.id);
         const notesField = document.querySelector(`[data-notes-id="${id}"]`);
+        if (isNotesSave) {
+            button.disabled = true;
+            await apiFetch(`/activations/${id}/mechanic-notes`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                    mechanic_notes: notesField ? notesField.value.trim() : "",
+                    mechanic_responsible_name: mechanicName,
+                }),
+            });
+            await Promise.all([
+                loadResponsibleLists(),
+                loadMechanicList(),
+                state.user.profile === "ADMIN" ? loadDashboard() : Promise.resolve(),
+                loadSellerTable().catch(() => null),
+            ]);
+            showToast("Observação salva.");
+            return;
+        }
         const statusSelect = document.querySelector(`[data-status-select-id="${id}"]`);
         const nextStatus = button.dataset.statusSave === "true"
             ? statusSelect?.value
@@ -1474,7 +1513,105 @@ async function handleMechanicAction(event) {
         showToast("Status atualizado.");
     } catch (error) {
         showToast(error.message, true);
+    } finally {
+        if (button.isConnected) button.disabled = false;
     }
+}
+
+function mechanicNotesAreBeingEdited() {
+    const activeElement = document.activeElement;
+    const notesFieldIsFocused = activeElement?.matches?.("textarea[data-notes-id]");
+    const hasUnsavedNotes = elements.mechanicList.querySelector('textarea[data-notes-id][data-dirty="true"]');
+    if (!notesFieldIsFocused && !hasUnsavedNotes) {
+        state.mechanicNotesPauseUntil = 0;
+        return false;
+    }
+    return Date.now() < state.mechanicNotesPauseUntil;
+}
+
+function stopMechanicNotesCountdown() {
+    if (!state.mechanicNotesCountdownId) return;
+    window.clearInterval(state.mechanicNotesCountdownId);
+    state.mechanicNotesCountdownId = null;
+}
+
+function formatMechanicNotesCountdown(remainingMs) {
+    const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function updateMechanicNotesCountdown() {
+    const activeNotesField = document.activeElement?.matches?.("textarea[data-notes-id]")
+        ? document.activeElement
+        : null;
+    const dirtyNotesFields = [...elements.mechanicList.querySelectorAll('textarea[data-notes-id][data-dirty="true"]')];
+    const trackedFields = new Set(dirtyNotesFields);
+    if (activeNotesField) trackedFields.add(activeNotesField);
+
+    if (!trackedFields.size) {
+        stopMechanicNotesCountdown();
+        state.mechanicNotesPauseUntil = 0;
+        elements.mechanicList.querySelectorAll("[data-notes-state-id]").forEach((notesState) => {
+            notesState.textContent = "";
+            notesState.classList.remove("is-paused", "is-unsaved");
+        });
+        return;
+    }
+
+    const remainingMs = state.mechanicNotesPauseUntil - Date.now();
+    if (remainingMs <= 0) {
+        stopMechanicNotesCountdown();
+        state.mechanicNotesPauseUntil = 0;
+        trackedFields.forEach((notesField) => {
+            const notesState = document.querySelector(`[data-notes-state-id="${notesField.dataset.notesId}"]`);
+            if (notesState) notesState.textContent = "Atualizando fila...";
+        });
+        loadMechanicList().catch((error) => showToast(error.message, true));
+        return;
+    }
+
+    const countdown = formatMechanicNotesCountdown(remainingMs);
+    elements.mechanicList.querySelectorAll("[data-notes-state-id]").forEach((notesState) => {
+        const notesField = document.querySelector(`[data-notes-id="${notesState.dataset.notesStateId}"]`);
+        const isTracked = trackedFields.has(notesField);
+        const isDirty = notesField?.dataset.dirty === "true";
+        notesState.textContent = isTracked
+            ? `${isDirty ? "Não salvo • atualiza" : "Atualização pausada"} em ${countdown}`
+            : "";
+        notesState.classList.toggle("is-paused", isTracked);
+        notesState.classList.toggle("is-unsaved", Boolean(isTracked && isDirty));
+    });
+}
+
+function startMechanicNotesCountdown() {
+    if (!state.mechanicNotesCountdownId) {
+        state.mechanicNotesCountdownId = window.setInterval(updateMechanicNotesCountdown, 1000);
+    }
+    updateMechanicNotesCountdown();
+}
+
+function extendMechanicNotesPause() {
+    state.mechanicNotesPauseUntil = Date.now() + MECHANIC_NOTES_PAUSE_MS;
+    startMechanicNotesCountdown();
+}
+
+function handleMechanicNotesFocus(event) {
+    if (!event.target.closest("textarea[data-notes-id]")) return;
+    extendMechanicNotesPause();
+}
+
+function handleMechanicNotesInput(event) {
+    const notesField = event.target.closest("textarea[data-notes-id]");
+    if (!notesField) return;
+    extendMechanicNotesPause();
+    const activationId = Number(notesField.dataset.notesId);
+    const activation = state.mechanicRows.find((row) => row.id === activationId);
+    const isDirty = notesField.value.trim() !== String(activation?.mechanic_notes || "").trim();
+    notesField.dataset.dirty = String(isDirty);
+    notesField.closest(".mechanic-card")?.classList.toggle("has-unsaved-notes", isDirty);
+    updateMechanicNotesCountdown();
 }
 
 async function submitUserForm(event) {
@@ -1712,6 +1849,8 @@ function bindEvents() {
         }
     });
     elements.mechanicList.addEventListener("click", handleMechanicAction);
+    elements.mechanicList.addEventListener("focusin", handleMechanicNotesFocus);
+    elements.mechanicList.addEventListener("input", handleMechanicNotesInput);
     elements.userForm.addEventListener("submit", submitUserForm);
     elements.usersTableBody.addEventListener("click", handleUsersTableClick);
     elements.userActionsDialog?.addEventListener("click", handleUsersTableClick);

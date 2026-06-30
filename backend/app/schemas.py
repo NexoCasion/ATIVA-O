@@ -224,6 +224,16 @@ class StatusUpdate(BaseTextModel):
         return cls.clean_text(value)
 
 
+class MechanicNotesUpdate(BaseTextModel):
+    mechanic_notes: str = Field(default="", max_length=1000)
+    mechanic_responsible_name: str | None = Field(default=None, max_length=120)
+
+    @field_validator("mechanic_notes", "mechanic_responsible_name", mode="before")
+    @classmethod
+    def normalize_fields(cls, value: str | None) -> str:
+        return cls.clean_text(value)
+
+
 class SchedulePreviewResponse(BaseModel):
     activation_date: date
     activation_time: time

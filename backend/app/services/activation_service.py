@@ -16,6 +16,7 @@ from ..schemas import (
     ActivationUpdate,
     AuditLogResponse,
     DashboardResponse,
+    MechanicNotesUpdate,
     SchedulePreviewResponse,
     StatusUpdate,
 )
@@ -513,6 +514,63 @@ def update_status(activation_id: int, payload: StatusUpdate, current_user: Curre
             old_value=old_snapshot,
             new_value=activation_snapshot(updated),
             details="Status atualizado pela oficina." if current_user.profile == "OFICINA" else "Status atualizado.",
+        )
+    return row_to_activation(updated)
+
+
+def update_mechanic_notes(
+    activation_id: int,
+    payload: MechanicNotesUpdate,
+    current_user: CurrentUser,
+) -> ActivationResponse:
+    with db_cursor(commit=True) as cursor:
+        current = fetch_activation_or_404(cursor, activation_id)
+        old_snapshot = activation_snapshot(current)
+
+        mechanic_person_id = current["mechanic_responsible_id"]
+        mechanic_name = payload.mechanic_responsible_name
+        if not mechanic_name and mechanic_person_id is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Informe o mecânico responsável para salvar a observação.",
+            )
+        if mechanic_name:
+            mechanic_person = ensure_person(
+                cursor,
+                name=mechanic_name,
+                person_type="MECANICO",
+                actor=current_user,
+            )
+            mechanic_person_id = mechanic_person["id"]
+
+        cursor.execute(
+            """
+            UPDATE activations
+            SET mechanic_notes = ?, mechanic_responsible_id = ?, updated_at = ?, last_changed_by = ?
+            WHERE id = ?
+            """,
+            (
+                payload.mechanic_notes,
+                mechanic_person_id,
+                iso_now(),
+                current_user.username,
+                activation_id,
+            ),
+        )
+        updated = fetch_activation_or_404(cursor, activation_id)
+        log_event(
+            cursor,
+            entity_type="activation",
+            entity_id=activation_id,
+            action="mechanic_notes_updated",
+            performed_by_user_id=current_user.id,
+            performed_by_login=current_user.username,
+            seller_person_id=updated["seller_responsible_id"],
+            mechanic_person_id=updated["mechanic_responsible_id"],
+            motorcycle_status=updated["status"],
+            old_value=old_snapshot,
+            new_value=activation_snapshot(updated),
+            details="Observação da oficina atualizada.",
         )
     return row_to_activation(updated)
 

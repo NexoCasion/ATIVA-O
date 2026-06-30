@@ -12,6 +12,7 @@ from ..schemas import (
     ActivationUpdate,
     AuditLogResponse,
     DashboardResponse,
+    MechanicNotesUpdate,
     SchedulePreviewResponse,
     StatusUpdate,
 )
@@ -26,6 +27,7 @@ from ..services.activation_service import (
     list_activations,
     preview_activation_schedule,
     update_activation,
+    update_mechanic_notes,
     update_status,
 )
 router = APIRouter()
@@ -108,6 +110,15 @@ def update_status_endpoint(
     current_user: CurrentUser = Depends(require_roles("ADMIN", "OFICINA")),
 ) -> ActivationResponse:
     return update_status(activation_id, payload, current_user)
+
+
+@router.patch("/activations/{activation_id}/mechanic-notes", response_model=ActivationResponse)
+def update_mechanic_notes_endpoint(
+    activation_id: int,
+    payload: MechanicNotesUpdate,
+    current_user: CurrentUser = Depends(require_roles("ADMIN", "OFICINA")),
+) -> ActivationResponse:
+    return update_mechanic_notes(activation_id, payload, current_user)
 
 
 @router.delete("/activations/{activation_id}", status_code=http_status.HTTP_204_NO_CONTENT)
