@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ativação de Motos</title>
     <link rel="icon" type="image/png" href="/assets/favicon.png?v=20260622">
-    <link rel="stylesheet" href="/styles.css?v=20260630-1">
+    <link rel="stylesheet" href="/styles.css?v=20260630-2">
 </head>
 <body data-theme="light">
     <section id="loginScreen" class="login-shell">
@@ -55,6 +55,11 @@
             </div>
 
             <div class="topbar-actions">
+                <div class="global-reset-timer" title="O site recarrega automaticamente a cada 3 minutos">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                    <span>Reset</span>
+                    <strong id="globalResetCountdown" role="timer">03:00</strong>
+                </div>
                 <button id="themeToggle" type="button" class="theme-toggle" aria-pressed="false" aria-label="Tema escuro" title="Tema escuro">
                     <span class="theme-icon theme-icon-sun" aria-hidden="true">
                         <svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg>
@@ -679,6 +684,6 @@
     </dialog>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="/app.js?v=20260630-3" defer></script>
+    <script src="/app.js?v=20260630-4" defer></script>
 </body>
 </html>

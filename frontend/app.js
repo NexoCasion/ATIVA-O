@@ -1,7 +1,7 @@
 const API_BASE = "/api";
 const STATUS_ORDER = ["Pendente", "Em andamento", "Finalizado", "Cancelado"];
 const DEFAULT_AUTO_REFRESH_SECONDS = 15;
-const MECHANIC_NOTES_PAUSE_MS = 3 * 60 * 1000;
+const FULL_PAGE_RESET_MS = 3 * 60 * 1000;
 const CHASSIS_PATTERN = /^[A-Z]{2}\d{6}$/;
 const THEME_STORAGE_KEY = "uiTheme";
 const THEME_LABELS = {
@@ -151,6 +151,7 @@ const elements = {
     sessionAvatar: document.getElementById("sessionAvatar"),
     logoutButton: document.getElementById("logoutButton"),
     themeToggle: document.getElementById("themeToggle"),
+    globalResetCountdown: document.getElementById("globalResetCountdown"),
     sessionUserLabel: document.getElementById("sessionUserLabel"),
     sessionProfileLabel: document.getElementById("sessionProfileLabel"),
     heroSubtitle: document.getElementById("heroSubtitle"),
@@ -274,6 +275,10 @@ const state = {
     autoRefreshId: null,
     mechanicNotesPauseUntil: 0,
     mechanicNotesCountdownId: null,
+    fullPageResetAt: 0,
+    fullPageResetTimeoutId: null,
+    globalResetCountdownId: null,
+    pageResetInProgress: false,
     schedulePreviewRequestId: 0,
 };
 
@@ -1542,6 +1547,34 @@ function formatMechanicNotesCountdown(remainingMs) {
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function performFullPageReset() {
+    if (state.pageResetInProgress) return;
+    state.pageResetInProgress = true;
+    if (elements.globalResetCountdown) elements.globalResetCountdown.textContent = "00:00";
+    window.location.reload();
+}
+
+function updateGlobalResetCountdown() {
+    const remainingMs = state.fullPageResetAt - Date.now();
+    if (remainingMs <= 0) {
+        performFullPageReset();
+        return;
+    }
+    if (elements.globalResetCountdown) {
+        elements.globalResetCountdown.textContent = formatMechanicNotesCountdown(remainingMs);
+    }
+}
+
+function startGlobalPageReset() {
+    if (state.fullPageResetTimeoutId) window.clearTimeout(state.fullPageResetTimeoutId);
+    if (state.globalResetCountdownId) window.clearInterval(state.globalResetCountdownId);
+    state.pageResetInProgress = false;
+    state.fullPageResetAt = Date.now() + FULL_PAGE_RESET_MS;
+    state.fullPageResetTimeoutId = window.setTimeout(performFullPageReset, FULL_PAGE_RESET_MS);
+    state.globalResetCountdownId = window.setInterval(updateGlobalResetCountdown, 1000);
+    updateGlobalResetCountdown();
+}
+
 function updateMechanicNotesCountdown() {
     const activeNotesField = document.activeElement?.matches?.("textarea[data-notes-id]")
         ? document.activeElement
@@ -1560,15 +1593,15 @@ function updateMechanicNotesCountdown() {
         return;
     }
 
-    const remainingMs = state.mechanicNotesPauseUntil - Date.now();
+    const remainingMs = state.fullPageResetAt - Date.now();
     if (remainingMs <= 0) {
         stopMechanicNotesCountdown();
         state.mechanicNotesPauseUntil = 0;
         trackedFields.forEach((notesField) => {
             const notesState = document.querySelector(`[data-notes-state-id="${notesField.dataset.notesId}"]`);
-            if (notesState) notesState.textContent = "Atualizando fila...";
+            if (notesState) notesState.textContent = "Recarregando site...";
         });
-        loadMechanicList().catch((error) => showToast(error.message, true));
+        performFullPageReset();
         return;
     }
 
@@ -1592,20 +1625,20 @@ function startMechanicNotesCountdown() {
     updateMechanicNotesCountdown();
 }
 
-function extendMechanicNotesPause() {
-    state.mechanicNotesPauseUntil = Date.now() + MECHANIC_NOTES_PAUSE_MS;
+function startMechanicNotesPause() {
+    state.mechanicNotesPauseUntil = state.fullPageResetAt;
     startMechanicNotesCountdown();
 }
 
 function handleMechanicNotesFocus(event) {
     if (!event.target.closest("textarea[data-notes-id]")) return;
-    extendMechanicNotesPause();
+    startMechanicNotesPause();
 }
 
 function handleMechanicNotesInput(event) {
     const notesField = event.target.closest("textarea[data-notes-id]");
     if (!notesField) return;
-    extendMechanicNotesPause();
+    startMechanicNotesPause();
     const activationId = Number(notesField.dataset.notesId);
     const activation = state.mechanicRows.find((row) => row.id === activationId);
     const isDirty = notesField.value.trim() !== String(activation?.mechanic_notes || "").trim();
@@ -1916,6 +1949,7 @@ async function restoreSession() {
 }
 
 async function bootstrap() {
+    startGlobalPageReset();
     applyTheme(getStoredTheme());
     bindEvents();
     resetSellerForm();

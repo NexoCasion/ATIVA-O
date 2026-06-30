@@ -328,6 +328,39 @@ body[data-theme="dark"] .logo-glow::before {
     justify-content: flex-end;
 }
 
+.global-reset-timer {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-soft);
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.global-reset-timer svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.global-reset-timer strong {
+    min-width: 38px;
+    color: var(--text);
+    font-size: 0.86rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
 .session-panel {
     display: flex;
     align-items: center;
