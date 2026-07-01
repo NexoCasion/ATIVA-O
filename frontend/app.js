@@ -151,6 +151,7 @@ const elements = {
     sessionAvatar: document.getElementById("sessionAvatar"),
     logoutButton: document.getElementById("logoutButton"),
     themeToggle: document.getElementById("themeToggle"),
+    globalResetTimer: document.getElementById("globalResetTimer"),
     globalResetCountdown: document.getElementById("globalResetCountdown"),
     sessionUserLabel: document.getElementById("sessionUserLabel"),
     sessionProfileLabel: document.getElementById("sessionProfileLabel"),
@@ -1316,6 +1317,7 @@ async function loadRouteData(route) {
 async function navigateTo(route, { replace = false } = {}) {
     const targetRoute = routeIsAllowed(route) ? route : getDefaultRoute(state.user.profile);
     state.currentRoute = targetRoute;
+    syncPageResetForRoute(targetRoute);
     renderNav();
     renderSections();
     if (replace) {
@@ -1548,6 +1550,10 @@ function formatMechanicNotesCountdown(remainingMs) {
 }
 
 function performFullPageReset() {
+    if (state.currentRoute !== "/oficina") {
+        stopGlobalPageReset();
+        return;
+    }
     if (state.pageResetInProgress) return;
     state.pageResetInProgress = true;
     if (elements.globalResetCountdown) elements.globalResetCountdown.textContent = "00:00";
@@ -1555,6 +1561,10 @@ function performFullPageReset() {
 }
 
 function updateGlobalResetCountdown() {
+    if (state.currentRoute !== "/oficina") {
+        stopGlobalPageReset();
+        return;
+    }
     const remainingMs = state.fullPageResetAt - Date.now();
     if (remainingMs <= 0) {
         performFullPageReset();
@@ -1568,11 +1578,33 @@ function updateGlobalResetCountdown() {
 function startGlobalPageReset() {
     if (state.fullPageResetTimeoutId) window.clearTimeout(state.fullPageResetTimeoutId);
     if (state.globalResetCountdownId) window.clearInterval(state.globalResetCountdownId);
+    elements.globalResetTimer?.classList.remove("is-hidden");
     state.pageResetInProgress = false;
     state.fullPageResetAt = Date.now() + FULL_PAGE_RESET_MS;
     state.fullPageResetTimeoutId = window.setTimeout(performFullPageReset, FULL_PAGE_RESET_MS);
     state.globalResetCountdownId = window.setInterval(updateGlobalResetCountdown, 1000);
     updateGlobalResetCountdown();
+}
+
+function stopGlobalPageReset() {
+    if (state.fullPageResetTimeoutId) window.clearTimeout(state.fullPageResetTimeoutId);
+    if (state.globalResetCountdownId) window.clearInterval(state.globalResetCountdownId);
+    state.fullPageResetTimeoutId = null;
+    state.globalResetCountdownId = null;
+    state.fullPageResetAt = 0;
+    state.pageResetInProgress = false;
+    state.mechanicNotesPauseUntil = 0;
+    stopMechanicNotesCountdown();
+    elements.globalResetTimer?.classList.add("is-hidden");
+    if (elements.globalResetCountdown) elements.globalResetCountdown.textContent = "03:00";
+}
+
+function syncPageResetForRoute(route) {
+    if (route === "/oficina") {
+        if (!state.fullPageResetTimeoutId) startGlobalPageReset();
+        return;
+    }
+    stopGlobalPageReset();
 }
 
 function updateMechanicNotesCountdown() {
@@ -1949,7 +1981,6 @@ async function restoreSession() {
 }
 
 async function bootstrap() {
-    startGlobalPageReset();
     applyTheme(getStoredTheme());
     bindEvents();
     resetSellerForm();
